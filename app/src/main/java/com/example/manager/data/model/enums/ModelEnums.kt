@@ -1,4 +1,8 @@
 package com.example.manager.data.model.enums
+/**
+ * ModelEnums.kt,用于存放所有相关的顶级声明，
+ * 包括：类（class）、枚举（enum）、函数（fun）和属性（val/var）
+*/
 
 /**
  * 员工角色
