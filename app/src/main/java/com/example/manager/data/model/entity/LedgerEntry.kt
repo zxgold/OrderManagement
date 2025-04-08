@@ -51,28 +51,28 @@ data class LedgerEntry(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
 
-    @ColumnInfo(name = "entry_type", index = true)
+    @ColumnInfo(name = "entry_type")
     val entryType: LedgerEntryType, // INCOME or EXPENSE
 
     @ColumnInfo(name = "amount")
     val amount: Double, // 始终为正数
 
-    @ColumnInfo(name = "entry_date", index = true)
+    @ColumnInfo(name = "entry_date")
     val entryDate: Long = System.currentTimeMillis(),
 
     @ColumnInfo(name = "description")
     val description: String,
 
-    @ColumnInfo(name = "related_order_id", index = true)
+    @ColumnInfo(name = "related_order_id")
     val relatedOrderId: Long? = null,
 
-    @ColumnInfo(name = "related_customer_id", index = true)
+    @ColumnInfo(name = "related_customer_id")
     val relatedCustomerId: Long? = null,
 
-    @ColumnInfo(name = "payment_id", index = true)
+    @ColumnInfo(name = "payment_id")
     val paymentId: Long? = null,
 
-    @ColumnInfo(name = "staff_id", index = true)
+    @ColumnInfo(name = "staff_id")
     val staffId: Long, // 记录人
 
     @ColumnInfo(name = "notes")

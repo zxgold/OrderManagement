@@ -31,13 +31,13 @@ data class ActionLog(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
 
-    @ColumnInfo(name = "action_time", index = true)
+    @ColumnInfo(name = "action_time")
     val actionTime: Long = System.currentTimeMillis(),
 
-    @ColumnInfo(name = "staff_id", index = true)
+    @ColumnInfo(name = "staff_id")
     val staffId: Long, // 操作人
 
-    @ColumnInfo(name = "action_type", index = true)
+    @ColumnInfo(name = "action_type")
     val actionType: ActionLogType, // 使用枚举
 
     @ColumnInfo(name = "target_entity_type")

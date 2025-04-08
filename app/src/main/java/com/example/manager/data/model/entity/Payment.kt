@@ -32,19 +32,19 @@ data class Payment(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
 
-    @ColumnInfo(name = "order_id", index = true)
+    @ColumnInfo(name = "order_id")
     val orderId: Long,
 
     @ColumnInfo(name = "amount")
     val amount: Double, // 本次收款金额
 
-    @ColumnInfo(name = "payment_date", index = true)
+    @ColumnInfo(name = "payment_date")
     val paymentDate: Long = System.currentTimeMillis(),
 
     @ColumnInfo(name = "payment_method")
     val paymentMethod: String? = null, // 如 "现金", "微信", "银行转账"
 
-    @ColumnInfo(name = "staff_id", index = true)
+    @ColumnInfo(name = "staff_id")
     val staffId: Long, // 收款操作人
 
     @ColumnInfo(name = "notes")

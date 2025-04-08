@@ -45,25 +45,25 @@ data class FollowUp(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
 
-    @ColumnInfo(name = "customer_id", index = true)
+    @ColumnInfo(name = "customer_id")
     val customerId: Long,
 
-    @ColumnInfo(name = "order_id", index = true)
+    @ColumnInfo(name = "order_id")
     val orderId: Long,
 
     @ColumnInfo(name = "sequence", defaultValue = "1")
     val sequence: Int = 1, // 第几次计划的回访
 
-    @ColumnInfo(name = "status", index = true)
+    @ColumnInfo(name = "status")
     val status: FollowUpStatus = FollowUpStatus.PENDING, // 默认待处理
 
-    @ColumnInfo(name = "scheduled_date", index = true)
+    @ColumnInfo(name = "scheduled_date")
     val scheduledDate: Long, // 计划回访日期
 
     @ColumnInfo(name = "actual_follow_up_date")
     val actualFollowUpDate: Long? = null, // 实际完成日期
 
-    @ColumnInfo(name = "staff_id", index = true)
+    @ColumnInfo(name = "staff_id")
     val staffId: Long? = null, // 执行人 ID
 
     @ColumnInfo(name = "notes")

@@ -41,7 +41,7 @@ data class Order(
     @ColumnInfo(name = "order_number")
     val orderNumber: String, // 需要业务逻辑生成唯一号
 
-    @ColumnInfo(name = "customer_id", index = true) // 显式添加索引注解
+    @ColumnInfo(name = "customer_id")
     val customerId: Long?, // V3 设计为非空
 
     @ColumnInfo(name = "order_date")
@@ -77,6 +77,6 @@ data class Order(
     @ColumnInfo(name = "updated_at")
     val updatedAt: Long = System.currentTimeMillis(),
 
-    @ColumnInfo(name = "creating_staff_id", index = true)
+    @ColumnInfo(name = "creating_staff_id")
     val creatingStaffId: Long? // 记录订单创建者
 )

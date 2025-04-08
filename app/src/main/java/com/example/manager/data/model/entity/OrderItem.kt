@@ -44,16 +44,16 @@ data class OrderItem(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
 
-    @ColumnInfo(name = "order_id", index = true)
+    @ColumnInfo(name = "order_id")
     val orderId: Long,
 
-    @ColumnInfo(name = "product_id", index = true)
+    @ColumnInfo(name = "product_id")
     val productId: Long? = null, // 允许非标品
 
     @ColumnInfo(name = "product_category")
     val productCategory: String? = null, // 快照
 
-    @ColumnInfo(name = "product_name", index = true)
+    @ColumnInfo(name = "product_name")
     val productName: String, // 快照，非空
 
     @ColumnInfo(name = "product_model")
@@ -77,7 +77,7 @@ data class OrderItem(
     @ColumnInfo(name = "status")
     val status: OrderItemStatus = OrderItemStatus.NOT_ORDERED, // 默认未下单
 
-    @ColumnInfo(name = "status_last_update_staff_id", index = true)
+    @ColumnInfo(name = "status_last_update_staff_id")
     val statusLastUpdateStaffId: Long? = null,
 
     @ColumnInfo(name = "status_last_update_at")
