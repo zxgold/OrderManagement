@@ -80,13 +80,15 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-
-
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.datastore.core)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.navigation.fragment.ktx)
 
 
     // Room数据库
     implementation(libs.androidx.room.runtime)
-    kapt(libs.androidx.room.compiler)
+    kapt(libs.hilt.compiler)
     implementation(libs.androidx.room.ktx)
 
     implementation(libs.androidx.lifecycle.livedata.ktx)

@@ -26,4 +26,7 @@ interface StaffDao {
 
     @Query("SELECT * FROM staff ORDER BY name ASC")
     suspend fun getAllStaff(): List<Staff>
+
+    @Query("SELECT COUNT(*) FROM staff")
+    suspend fun countStaff(): Int // 返回员工总数
 }
