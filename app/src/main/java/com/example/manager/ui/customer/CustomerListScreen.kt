@@ -1,12 +1,17 @@
 package com.example.manager.ui.customer
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Group // 员工管理图标
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,37 +21,63 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.manager.data.model.entity.Customer
-import com.example.manager.viewmodel.CustomerListUiState
-import com.example.manager.viewmodel.CustomerViewModel // Import your ViewModel
-import kotlinx.coroutines.launch
+import com.example.manager.data.model.enums.StaffRole // 导入 StaffRole
+import com.example.manager.data.preferences.UserSession // 导入 UserSession
+import com.example.manager.viewmodel.AuthViewModel // 导入 AuthViewModel
+import com.example.manager.viewmodel.CustomerViewModel
+import androidx.compose.material3.HorizontalDivider // 你使用的是 HorizontalDivider
 
-@OptIn(ExperimentalMaterial3Api::class) // For Scaffold, TopAppBar etc.
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomerListScreen(
-    viewModel: CustomerViewModel = hiltViewModel() // Hilt provides the ViewModel
+    viewModel: CustomerViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel() // 获取 AuthViewModel 实例
 ) {
-    // Observe the UI state from the ViewModel safely
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    // 获取当前会话状态，提供一个非 null 的初始值以避免 LaunchedEffect 首次运行问题
+    val currentSession by authViewModel.currentUserSessionFlow.collectAsStateWithLifecycle(
+        initialValue = UserSession(isLoggedIn = false, staffId = null, staffRole = null, username = null, staffName = null)
+    )
+    val currentRole = currentSession.staffRole
+
     val snackbarHostState = remember { SnackbarHostState() }
     var showAddDialog by remember { mutableStateOf(false) }
-    var customerToDelete by remember { mutableStateOf<Customer?>(null) } // For delete confirmation
+    var customerToDelete by remember { mutableStateOf<Customer?>(null) }
+    val editingCustomer by viewModel.editingCustomer.collectAsStateWithLifecycle() // 观察要编辑的客户
 
-    // Effect to show snackbar when error message changes
     LaunchedEffect(uiState.errorMessage) {
         uiState.errorMessage?.let { message ->
             val result = snackbarHostState.showSnackbar(
                 message = message,
-                actionLabel = "知道了" // Optional action
+                actionLabel = "知道了"
             )
             if (result == SnackbarResult.ActionPerformed || result == SnackbarResult.Dismissed) {
-                viewModel.errorShown() // Notify ViewModel the error was handled
+                viewModel.errorShown()
             }
         }
     }
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("客户管理") })
+            TopAppBar(
+                title = { Text("客户管理") },
+                actions = {
+                    if (currentRole == StaffRole.BOSS) {
+                        IconButton(onClick = {
+                            Log.d("CustomerListScreen", "员工管理按钮点击 (TODO)")
+                            // TODO: 导航到员工管理界面
+                        }) {
+                            Icon(Icons.Filled.Group, contentDescription = "员工管理")
+                        }
+                    }
+                    IconButton(onClick = {
+                        Log.d("CustomerListScreen", "登出按钮点击")
+                        authViewModel.logout()
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "登出")
+                    }
+                }
+            )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddDialog = true }) {
@@ -59,12 +90,11 @@ fun CustomerListScreen(
             modifier = Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
-                .padding(horizontal = 16.dp) // Add horizontal padding for content
+                .padding(horizontal = 16.dp)
         ) {
-            // Search Bar
             OutlinedTextField(
                 value = uiState.searchQuery,
-                onValueChange = viewModel::onSearchQueryChanged, // Use method reference
+                onValueChange = viewModel::onSearchQueryChanged,
                 label = { Text("搜索客户 (姓名或电话)") },
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "搜索") },
                 modifier = Modifier
@@ -72,10 +102,7 @@ fun CustomerListScreen(
                     .padding(vertical = 8.dp),
                 singleLine = true
             )
-
             Spacer(modifier = Modifier.height(8.dp))
-
-            // Content Area: Loading, Empty, or List
             when {
                 uiState.isLoading -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -91,14 +118,14 @@ fun CustomerListScreen(
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
                         items(
                             items = uiState.customers,
-                            key = { customer -> customer.id } // Important for performance
+                            key = { customer -> customer.id }
                         ) { customer ->
                             CustomerItem(
                                 customer = customer,
-                                onDeleteClick = { customerToDelete = it } // Show delete confirmation
-                                // onItemClick = { /* TODO: Navigate to customer detail */ }
+                                onItemClick = { viewModel.startEditingCustomer(it.id) }, // <-- 触发编辑
+                                onDeleteClick = { customerToDelete = it }
                             )
-                            Divider() // Add a divider between items
+                            HorizontalDivider() // 你使用的是 HorizontalDivider
                         }
                     }
                 }
@@ -107,8 +134,6 @@ fun CustomerListScreen(
     }
 
     // --- Dialogs ---
-
-    // Add Customer Dialog
     if (showAddDialog) {
         AddCustomerDialog(
             onDismiss = { showAddDialog = false },
@@ -119,7 +144,6 @@ fun CustomerListScreen(
         )
     }
 
-    // Delete Confirmation Dialog
     customerToDelete?.let { customer ->
         AlertDialog(
             onDismissRequest = { customerToDelete = null },
@@ -138,34 +162,49 @@ fun CustomerListScreen(
             }
         )
     }
+
+    // 编辑客户对话框
+    editingCustomer?.let { customerToEdit ->
+        EditCustomerDialog(
+            customer = customerToEdit,
+            onDismiss = { viewModel.doneEditingCustomer() },
+            onConfirm = { updatedCustomer ->
+                viewModel.updateCustomer(updatedCustomer)
+            }
+        )
+    }
 }
 
 @Composable
 fun CustomerItem(
     customer: Customer,
+    onItemClick: (Customer) -> Unit, // 修改参数以接收点击事件
     onDeleteClick: (Customer) -> Unit,
-    // onItemClick: (Customer) -> Unit // For future use
     modifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable { /* onItemClick(customer) */ } // Make the row clickable
+            .clickable { onItemClick(customer) } // 使整个条目可点击
             .padding(vertical = 12.dp, horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween // Pushes delete icon to the end
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) { // Take available space, leave room for icon
+        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
             Text(text = customer.name, style = MaterialTheme.typography.bodyLarge)
-            customer.phone?.let { // Only show phone if it exists
+            customer.phone?.let {
                 Text(text = it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            // 可以考虑在这里显示备注 customer.remark
+            customer.remark?.takeIf { it.isNotBlank() }?.let {
+                Text(text = "备注: $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
             }
         }
         IconButton(onClick = { onDeleteClick(customer) }) {
             Icon(
                 Icons.Filled.Delete,
                 contentDescription = "删除客户",
-                tint = MaterialTheme.colorScheme.error // Use error color for delete
+                tint = MaterialTheme.colorScheme.error
             )
         }
     }
@@ -175,18 +214,19 @@ fun CustomerItem(
 @Composable
 fun AddCustomerDialog(
     onDismiss: () -> Unit,
-    onConfirm: (name: String, phone: String, address: String) -> Unit
+    onConfirm: (name: String, phone: String, address: String) -> Unit // 这里参数目前没有包含备注
 ) {
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
+    // 如果添加客户也需要备注，这里和 EditCustomerDialog 类似处理
     var nameError by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("添加新客户") },
         text = {
-            Column {
+            Column { // 简单包裹一下，如果未来内容多可以加滚动
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it; nameError = it.isBlank() },
@@ -213,19 +253,98 @@ fun AddCustomerDialog(
                     label = { Text("地址") },
                     modifier = Modifier.fillMaxWidth()
                 )
+                // 如果添加客户时也需要备注，在这里添加 TextField
             }
         },
         confirmButton = {
             TextButton(
                 onClick = {
                     if (name.isNotBlank()) {
-                        onConfirm(name, phone, address)
+                        onConfirm(name, phone, address) // 注意这里没有传备注
                     } else {
                         nameError = true
                     }
-                },
-                // enabled = name.isNotBlank() // Enable only if name is not blank
+                }
             ) { Text("确认") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("取消") }
+        }
+    )
+}
+
+// 编辑客户对话框的实现 (与我们之前讨论的一致)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditCustomerDialog(
+    customer: Customer,
+    onDismiss: () -> Unit,
+    onConfirm: (Customer) -> Unit
+) {
+    var name by remember(customer.id) { mutableStateOf(customer.name) }
+    var phone by remember(customer.id) { mutableStateOf(customer.phone ?: "") }
+    var address by remember(customer.id) { mutableStateOf(customer.address ?: "") }
+    var remark by remember(customer.id) { mutableStateOf(customer.remark ?: "") }
+    var nameError by remember(customer.id) { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("编辑客户信息") },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it; nameError = it.isBlank() },
+                    label = { Text("客户姓名 *") },
+                    isError = nameError,
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (nameError) {
+                    Text("姓名不能为空", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = phone,
+                    onValueChange = { phone = it },
+                    label = { Text("联系电话") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = address,
+                    onValueChange = { address = it },
+                    label = { Text("地址") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = remark,
+                    onValueChange = { remark = it },
+                    label = { Text("备注") },
+                    modifier = Modifier.fillMaxWidth(),
+                    maxLines = 3
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (name.isNotBlank()) {
+                        val updatedCustomer = customer.copy(
+                            name = name,
+                            phone = phone.ifBlank { null },
+                            address = address.ifBlank { null },
+                            remark = remark.ifBlank { null },
+                            updatedAt = System.currentTimeMillis()
+                        )
+                        onConfirm(updatedCustomer)
+                    } else {
+                        nameError = true
+                    }
+                }
+            ) { Text("保存") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("取消") }

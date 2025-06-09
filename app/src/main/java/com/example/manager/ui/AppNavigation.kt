@@ -1,37 +1,35 @@
-package com.example.manager.ui
+package com.example.manager.ui // 你的包名
 
-
-
+import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.manager.ui.auth.BossRegistrationScreen // <-- 新增 Boss 注册屏幕导入
-import com.example.manager.ui.auth.LoginScreen // <-- 修改 LoginScreen 导入路径 (如果需要)
+import com.example.manager.ui.auth.BossRegistrationScreen
+import com.example.manager.ui.auth.LoginScreen
 import com.example.manager.ui.customer.CustomerListScreen
-import com.example.manager.viewmodel.AppStartState // 导入 AppStartState
 import com.example.manager.viewmodel.AuthViewModel
-import com.example.manager.data.preferences.UserSession // 导入 UserSession
+import com.example.manager.viewmodel.NavigationEvent // 确保导入这个
 
-// 定义屏幕路由 (确保 BossRegistrationScreen 路由已添加)
-object AppDestinations {
-    const val LOADING_ROUTE = "loading" // 新增一个加载状态的路由名
+// 定义屏幕路由 (可以放在单独的文件 AppDestinations.kt 中)
+object AppScreenRoutes { // 改个名字以区分之前的 AppDestinations
+    const val LOADING_SCREEN_ROUTE = "loading_screen" // 新增加载屏幕路由
     const val LOGIN_ROUTE = "login"
-    const val BOSS_REGISTRATION_ROUTE = "boss_registration" // 新增
-    const val CUSTOMER_LIST_ROUTE = "customer_list"
-    // ... 其他路由
+    const val BOSS_REGISTRATION_ROUTE = "boss_registration"
+    const val CUSTOMER_LIST_ROUTE = "customer_list" // 假设这是主应用入口
 }
 
 @Composable
@@ -39,110 +37,104 @@ fun AppNavigation(
     navController: NavHostController = rememberNavController(),
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
-    val appStartState by authViewModel.appStartState.collectAsStateWithLifecycle()
-    // 从 SessionManager 收集用户会话状态，初始值表示未知/未登录
-    val userSession by authViewModel.userSessionFlow.collectAsState(
-        initial = UserSession(isLoggedIn = false, staffId = null, staffRole = null) // 提供一个明确的初始值
-    )
+    val authUiState by authViewModel.authUiState.collectAsStateWithLifecycle()
+    // isInitialSetupNeeded 和 currentUserSessionFlow 主要由 ViewModel 内部用于决定 navigationEvent
 
-    // 根据 appStartState 和 userSession.isLoggedIn 动态确定起始路由
-    // LaunchedEffect 用于在 appStartState 或 userSession.isLoggedIn 变化时执行一次导航
-    // 这样可以确保 NavHost 的 startDestination 是在状态稳定后确定的
-    LaunchedEffect(appStartState, userSession.isLoggedIn) {
-        val destination = when (appStartState) {
-            AppStartState.Unknown -> {
-                // 如果 SessionManager 还在加载，保持在加载状态或不做任何事
-                // 如果 userSession.isLoggedIn 已经为 true (来自缓存)，则直接跳主页
-                if (userSession.isLoggedIn && appStartState != AppStartState.NeedsBossRegistration) {
-                    AppDestinations.CUSTOMER_LIST_ROUTE
-                } else {
-                    // 否则等待 appStartState 确定
-                    null // 暂时不导航，等待 appStartState 变为确定状态
+    // 这个 LaunchedEffect 负责处理 ViewModel 发出的所有导航事件
+    LaunchedEffect(key1 = authUiState.navigationEvent, key2 = navController) {
+        val event = authUiState.navigationEvent
+        Log.d("AppNavigation", "Navigation Event received: $event, CurrentDest: ${navController.currentDestination?.route}")
+
+        val currentRoute = navController.currentDestination?.route
+
+        when (event) {
+            is NavigationEvent.GoToBossRegistration -> {
+                if (currentRoute != AppScreenRoutes.BOSS_REGISTRATION_ROUTE) {
+                    navController.navigate(AppScreenRoutes.BOSS_REGISTRATION_ROUTE) {
+                        popUpTo(0) { inclusive = true } // 清空整个回退栈
+                        launchSingleTop = true
+                    }
+                    authViewModel.navigationEventConsumed()
                 }
             }
-            AppStartState.NeedsBossRegistration -> AppDestinations.BOSS_REGISTRATION_ROUTE
-            AppStartState.CanLogin -> {
-                if (userSession.isLoggedIn) {
-                    AppDestinations.CUSTOMER_LIST_ROUTE
-                } else {
-                    AppDestinations.LOGIN_ROUTE
+            is NavigationEvent.GoToLogin -> {
+                if (currentRoute != AppScreenRoutes.LOGIN_ROUTE) {
+                    navController.navigate(AppScreenRoutes.LOGIN_ROUTE) {
+                        popUpTo(0) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                    authViewModel.navigationEventConsumed()
                 }
             }
-        }
-
-        destination?.let {
-            // 只有当目标路由确定且与当前路由不同时才执行导航
-            // 并且在 NavHost 已经组合之后执行
-            if (navController.currentDestination?.route != it) {
-                navController.navigate(it) {
-                    // 清除所有回退栈，使新目标成为唯一的屏幕
-                    popUpTo(navController.graph.startDestinationId) { inclusive = true }
-                    launchSingleTop = true
+            is NavigationEvent.GoToMainApp -> {
+                if (currentRoute != AppScreenRoutes.CUSTOMER_LIST_ROUTE) {
+                    navController.navigate(AppScreenRoutes.CUSTOMER_LIST_ROUTE) {
+                        popUpTo(0) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                    authViewModel.navigationEventConsumed()
                 }
+            }
+            NavigationEvent.Idle -> {
+                // 当 ViewModel 初始化完成且 navigationEvent 仍为 Idle 时，
+                // 这通常意味着 ViewModel 的 init 块已经执行完毕，
+                // 但可能没有发出新的导航指令（比如，如果初始状态就是应该停留在加载屏）
+                // 或者，这意味着初始导航已由之前的事件处理。
+                // 我们主要依赖 ViewModel 的 init 块发出第一个明确的导航事件。
+                // 如果ViewModel的init块没有发出明确指令，且startDestination是LOADING_SCREEN_ROUTE
+                // 那么应用会停留在加载屏。
             }
         }
     }
 
-
-    // NavHost 的 startDestination 可以是一个临时的加载路由，或者根据初始状态决定
-    // 一个简单的方式是，如果 appStartState 还是 Unknown，则显示加载动画，否则构建 NavHost
-    when (appStartState) {
-        AppStartState.Unknown -> {
-            // 初始加载状态，可以显示一个全局加载指示器
+    NavHost(
+        navController = navController,
+        startDestination = AppScreenRoutes.LOADING_SCREEN_ROUTE // 始终从加载屏幕开始
+    ) {
+        composable(AppScreenRoutes.LOADING_SCREEN_ROUTE) {
+            // 一个简单的加载屏幕
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
-                // Text("正在检查应用状态...") // 或者更友好的提示
+                Text("应用加载中...", modifier = Modifier.padding(top = 16.dp))
             }
+            // ViewModel 的 init 块会异步运行 checkInitialAppState()
+            // 并最终通过 authUiState.navigationEvent 更新导航目标。
+            // 上面的 LaunchedEffect 会捕获这个事件并执行导航。
         }
-        else -> {
-            // 一旦 appStartState 确定，就构建 NavHost
-            // startDestination 仍然重要，但实际的初始屏幕由 LaunchedEffect 控制
-            // 可以将 startDestination 设为一个不会直接显示的占位路由，或 LOGIN_ROUTE
-            val initialNavHostRoute = when (appStartState) {
-                AppStartState.NeedsBossRegistration -> AppDestinations.BOSS_REGISTRATION_ROUTE
-                else -> AppDestinations.LOGIN_ROUTE // 默认到登录，如果已登录会被 LaunchedEffect 导航走
-            }
 
-            NavHost(navController = navController, startDestination = initialNavHostRoute) {
-                composable(AppDestinations.LOGIN_ROUTE) {
-                    LoginScreen(
-                        onLoginSuccess = { _, _ -> // staffId, staffRole
-                            navController.navigate(AppDestinations.CUSTOMER_LIST_ROUTE) {
-                                popUpTo(AppDestinations.LOGIN_ROUTE) { inclusive = true }
-                                launchSingleTop = true
-                            }
-                        }
-                    )
+        composable(AppScreenRoutes.BOSS_REGISTRATION_ROUTE) {
+            BossRegistrationScreen(
+                viewModel = authViewModel, // 传递 AuthViewModel
+                onNavigateToMainApp = {
+                    // 这个回调现在由 ViewModel 的 navigationEvent 驱动，
+                    // 所以这里不需要直接调用 navController.navigate
+                    // ViewModel 在注册成功后会发出 GoToMainApp 事件
+                    Log.d("BossRegScreen", "onNavigateToMainApp called (event should be handled by AppNavigation)")
+                },
+                onNavigateToLogin = {
+                    Log.d("BossRegScreen", "onNavigateToLogin called (event should be handled by AppNavigation)")
                 }
-                composable(AppDestinations.BOSS_REGISTRATION_ROUTE) {
-                    BossRegistrationScreen( // 下一步创建这个屏幕
-                        onRegistrationSuccess = {
-                            // 老板注册成功后，也视为已登录，导航到客户列表
-                            navController.navigate(AppDestinations.CUSTOMER_LIST_ROUTE) {
-                                popUpTo(AppDestinations.BOSS_REGISTRATION_ROUTE) { inclusive = true }
-                                launchSingleTop = true
-                            }
-                        }
-                    )
+            )
+        }
+
+        composable(AppScreenRoutes.LOGIN_ROUTE) {
+            LoginScreen(
+                viewModel = authViewModel, // 传递 AuthViewModel
+                onNavigateToMainApp = {
+                    Log.d("LoginScreen", "onNavigateToMainApp called (event should be handled by AppNavigation)")
                 }
-                composable(AppDestinations.CUSTOMER_LIST_ROUTE) {
-                    CustomerListScreen(
-                        // ... (如果需要登出等，可以传递 navController 或回调)
-                        // onLogout = {
-                        //    authViewModel.logout()
-                        //    // AuthViewModel 中的 userSessionFlow 会更新，
-                        //    // 上面的 LaunchedEffect 会自动处理导航到 LOGIN_ROUTE
-                        // }
-                    )
-                }
-                // 你可以添加一个临时的加载屏 Composable
-                // composable(AppDestinations.LOADING_ROUTE) {
-                //    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                //        CircularProgressIndicator()
-                //        Text("加载中...")
-                //    }
-                // }
-            }
+            )
+        }
+
+        composable(AppScreenRoutes.CUSTOMER_LIST_ROUTE) {
+            CustomerListScreen(
+                // 这里 CustomerListScreen 会通过 hiltViewModel() 获取它自己的 CustomerViewModel
+                // 如果需要登出功能，可以考虑从这里调用 authViewModel.logout()
+            )
+            // 示例：添加一个登出按钮
+            // Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Bottom) {
+            //     Button(onClick = { authViewModel.logout() }) { Text("登出") }
+            // }
         }
     }
 }
