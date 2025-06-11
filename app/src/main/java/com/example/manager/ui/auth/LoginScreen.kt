@@ -20,7 +20,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.manager.ui.theme.ManagerTheme // 确保这是你的主题
+import com.example.manager.ui.theme.ManagerTheme
 import com.example.manager.viewmodel.AuthViewModel
 import com.example.manager.viewmodel.NavigationEvent
 
@@ -28,10 +28,11 @@ import com.example.manager.viewmodel.NavigationEvent
 @Composable
 fun LoginScreen(
     viewModel: AuthViewModel = hiltViewModel(),
-    onNavigateToMainApp: () -> Unit, // 登录成功后导航到主应用
-    // onNavigateToRegistration: () -> Unit // 如果需要从登录页跳转到注册（这里我们场景是老板注册优先）
+    onNavigateToMainApp: () -> Unit,
+    onNavigateToRegistration: () -> Unit // <-- **新增：导航到注册页面的回调**
 ) {
     val authUiState by viewModel.authUiState.collectAsStateWithLifecycle()
+    val isInitialSetupNeeded by viewModel.isInitialSetupNeeded.collectAsStateWithLifecycle() // <-- **新增：观察是否需要初始设置**
     val snackbarHostState = remember { SnackbarHostState() }
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
@@ -47,10 +48,11 @@ fun LoginScreen(
         Log.d("LoginScreen", "Navigation Event observed: ${authUiState.navigationEvent}")
         if (authUiState.navigationEvent is NavigationEvent.GoToMainApp) {
             onNavigateToMainApp()
-            viewModel.navigationEventConsumed() // 消耗事件
+            viewModel.navigationEventConsumed()
         }
-        // 其他导航事件（如 GoToBossRegistration）在此屏幕通常不需要处理，
-        // 因为 AppStartState 会在启动时决定是否直接去老板注册
+        // 注意：如果 BossRegistrationScreen 注册成功后发出的也是 GoToMainApp 事件，
+        // 那么这里不需要额外处理 GoToBossRegistration，因为 AppNavigation 会处理初始导航。
+        // LoginScreen 主要负责在用户明确点击“注册”时，通过 onNavigateToRegistration 回调触发导航。
     }
 
     // 处理错误消息
@@ -61,7 +63,7 @@ fun LoginScreen(
                 message = it,
                 duration = SnackbarDuration.Short
             )
-            viewModel.errorShown() // 消耗错误
+            viewModel.errorShown()
         }
     }
 
@@ -112,8 +114,7 @@ fun LoginScreen(
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = {
-                    focusManager.clearFocus() // 清除焦点以隐藏键盘
-                    // 执行登录操作 (可选，通常通过按钮触发)
+                    focusManager.clearFocus()
                     if (username.isNotBlank() && password.isNotBlank()) {
                         viewModel.login(username.trim(), password)
                     } else {
@@ -127,15 +128,13 @@ fun LoginScreen(
             passwordError?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
             Spacer(modifier = Modifier.height(32.dp))
 
-            // 登录按钮
+            // 登录按钮 (确保这是完整的)
             Button(
                 onClick = {
-                    keyboardController?.hide() // 点击按钮时隐藏键盘
+                    keyboardController?.hide()
                     focusManager.clearFocus()
-
                     usernameError = if (username.isBlank()) "用户名不能为空" else null
                     passwordError = if (password.isBlank()) "密码不能为空" else null
-
                     if (usernameError == null && passwordError == null) {
                         viewModel.login(username.trim(), password)
                     }
@@ -150,7 +149,19 @@ fun LoginScreen(
                 }
             }
 
-            // (可选) 如果需要，可以在这里添加一个“忘记密码？”或“联系管理员”的文本/按钮
+
+            Spacer(modifier = Modifier.height(16.dp)) // <-- **新增：间距**
+
+            // --- 注册账户按钮 ---
+            TextButton(
+                onClick = {
+                    Log.d("LoginScreen", "注册账户按钮点击。 InitialSetupNeeded: $isInitialSetupNeeded")
+                    onNavigateToRegistration() // **调用新的导航回调**
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (isInitialSetupNeeded) "还没有账户？创建老板账户" else "注册新店铺/老板账户")
+            }
         }
     }
 }
@@ -160,7 +171,8 @@ fun LoginScreen(
 fun LoginScreenPreview() {
     ManagerTheme {
         LoginScreen(
-            onNavigateToMainApp = { Log.d("Preview", "Navigate to Main App from Login") }
+            onNavigateToMainApp = { Log.d("Preview", "Navigate to Main App from Login") },
+            onNavigateToRegistration = { Log.d("Preview", "Navigate to Registration from Login") } // <-- **更新 Preview**
         )
     }
 }

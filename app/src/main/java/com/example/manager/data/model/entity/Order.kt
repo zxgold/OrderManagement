@@ -22,14 +22,22 @@ import com.example.manager.data.model.typeconverter.Converters // 下一步创�
             entity = Staff::class,
             parentColumns = ["id"],
             childColumns = ["creating_staff_id"],
-            onDelete = ForeignKey.RESTRICT // 通常不允许删除创建了订单的员工，或设为 SET_NULL?
+            onDelete = ForeignKey.SET_NULL // 通常不允许删除创建了订单的员工，或设为 SET_NULL?
+        ),
+        ForeignKey( // <-- 新增外键
+            entity = Store::class,
+            parentColumns = ["id"],
+            childColumns = ["store_id"],
+            onDelete = ForeignKey.CASCADE // 如果店铺被删除，其下所有订单也级联删除 (这个策略要慎重!)
         )
+
     ],
     indices = [
         Index(value = ["order_number"], unique = true),
         Index(value = ["customer_id"]),
         Index(value = ["status"]),
-        Index(value = ["creating_staff_id"])
+        Index(value = ["creating_staff_id"]),
+        Index(value = ["store_id"])
         // Index(value = ["completion_date"]) // 如果经常按完成日期查，可加
     ]
 )
@@ -37,6 +45,9 @@ import com.example.manager.data.model.typeconverter.Converters // 下一步创�
 data class Order(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+
+    @ColumnInfo(name = "store_id")
+    val storeId: Long, // 关联到 Store 表的 ID
 
     @ColumnInfo(name = "order_number")
     val orderNumber: String, // 需要业务逻辑生成唯一号

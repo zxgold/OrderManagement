@@ -4,10 +4,12 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.manager.data.model.entity.Staff
+import com.example.manager.data.model.entity.Store
 import com.example.manager.data.model.enums.StaffRole
 import com.example.manager.data.preferences.SessionManager
 import com.example.manager.data.preferences.UserSession
 import com.example.manager.data.repository.StaffRepository
+import com.example.manager.data.repository.StoreRepository
 // import com.example.manager.util.PasswordHasher // TODO: 引入并使用安全的密码哈希工具
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
@@ -38,7 +40,8 @@ sealed class NavigationEvent {
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val staffRepository: StaffRepository,
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    private val storeRepository: StoreRepository
 ) : ViewModel() {
 
     private val _authUiState = MutableStateFlow(AuthUiState())
@@ -55,52 +58,67 @@ class AuthViewModel @Inject constructor(
         Log.d("AuthViewModel", "ViewModel Initialized. Checking initial app state...")
         checkInitialAppState()
     }
-
     private fun checkInitialAppState() {
         viewModelScope.launch {
-            _authUiState.update { it.copy(isLoading = true) }
-            Log.d("AuthViewModel", "Checking if initial setup is needed...")
+            // 重置导航事件并开始加载状态
+            _authUiState.update { it.copy(isLoading = true, navigationEvent = NavigationEvent.Idle) }
+            Log.d("AuthViewModel", "Checking session for initial navigation...")
+
+            // 仍然检查并更新 isInitialSetupNeeded，其他屏幕可能需要这个信息
+            // 但它不再直接决定初始导航去哪里
             val setupNeeded = staffRepository.isInitialSetupNeeded()
             _isInitialSetupNeeded.value = setupNeeded
-            Log.d("AuthViewModel", "Initial setup needed: $setupNeeded")
+            Log.d("AuthViewModel", "Initial setup needed (for reference): $setupNeeded")
 
-            if (setupNeeded) {
-                _authUiState.update { it.copy(isLoading = false, navigationEvent = NavigationEvent.GoToBossRegistration) }
-                Log.d("AuthViewModel", "Navigating to Boss Registration.")
-            } else {
-                Log.d("AuthViewModel", "Boss exists, checking session...")
-                val currentSession = sessionManager.userSessionFlow.first() // 获取当前会话状态
-                Log.d("AuthViewModel", "Current session: isLoggedIn=${currentSession.isLoggedIn}, staffId=${currentSession.staffId}")
-                if (currentSession.isLoggedIn && currentSession.staffId != null && currentSession.staffRole != null) {
-                    // 如果已登录，尝试获取完整的 Staff 信息（如果需要的话，或直接使用会话信息）
-                    val staffFromDb = staffRepository.getStaffById(currentSession.staffId)
-                    if (staffFromDb != null && staffFromDb.isActive) {
-                        _authUiState.update { it.copy(isLoading = false, navigationEvent = NavigationEvent.GoToMainApp, loggedInStaffInfo = staffFromDb) }
-                        Log.d("AuthViewModel", "Session active. Navigating to Main App.")
-                    } else {
-                        // 会话无效或用户被禁用，清除会话并去登录
-                        sessionManager.clearLoginSession()
-                        _authUiState.update { it.copy(isLoading = false, navigationEvent = NavigationEvent.GoToLogin) }
-                        Log.d("AuthViewModel", "Session invalid or staff inactive. Navigating to Login.")
+            // 获取当前会话状态
+            val currentSession = sessionManager.userSessionFlow.first()
+            Log.d("AuthViewModel", "Current session on app start: isLoggedIn=${currentSession.isLoggedIn}, staffId=${currentSession.staffId}, role=${currentSession.staffRole}")
+
+            if (currentSession.isLoggedIn && currentSession.staffId != null && currentSession.staffRole != null) {
+                // 如果会话中声称已登录，验证数据库中的员工信息
+                val staffFromDb = staffRepository.getStaffById(currentSession.staffId)
+                if (staffFromDb != null && staffFromDb.isActive) {
+                    // 会话有效且员工活动，导航到主应用
+                    _authUiState.update {
+                        it.copy(
+                            isLoading = false,
+                            navigationEvent = NavigationEvent.GoToMainApp,
+                            loggedInStaffInfo = staffFromDb // 传递员工信息
+                        )
                     }
+                    Log.d("AuthViewModel", "Session active and staff valid. Navigating to Main App.")
                 } else {
+                    // 会话中的用户ID在数据库中找不到，或者用户已被禁用
+                    Log.w("AuthViewModel", "Session staffId ${currentSession.staffId} not found in DB or staff is inactive. Clearing session.")
+                    sessionManager.clearLoginSession() // 清除无效会话
                     _authUiState.update { it.copy(isLoading = false, navigationEvent = NavigationEvent.GoToLogin) }
-                    Log.d("AuthViewModel", "No active session. Navigating to Login.")
+                    Log.d("AuthViewModel", "Invalid session. Navigating to Login.")
                 }
+            } else {
+                // 没有任何有效会话，导航到登录界面
+                _authUiState.update { it.copy(isLoading = false, navigationEvent = NavigationEvent.GoToLogin) }
+                Log.d("AuthViewModel", "No active session. Navigating to Login.")
             }
         }
     }
 
-    fun registerBossAccount(username: String, passwordAttempt: String, confirmPasswordAttempt: String, bossName: String = "老板") {
+    fun registerAccount(
+        username: String,
+        passwordAttempt: String,
+        confirmPasswordAttempt: String,
+        staffName: String, // 之前可能是 bossName
+        storeName: String  // 新增参数
+    ) {
         _authUiState.update { it.copy(isLoading = true, error = null, navigationEvent = NavigationEvent.Idle) }
-        Log.d("AuthViewModel", "Attempting to register boss: $username")
+        Log.d("AuthViewModel", "Attempting to register account: $username for staff: $staffName, store: $storeName")
         viewModelScope.launch {
             try {
-                if (username.isBlank() || passwordAttempt.isBlank() || bossName.isBlank()) {
-                    _authUiState.update { it.copy(isLoading = false, error = "所有必填字段均不能为空") }
+                // 1. 输入校验
+                if (username.isBlank() || passwordAttempt.isBlank() || staffName.isBlank() || storeName.isBlank()) {
+                    _authUiState.update { it.copy(isLoading = false, error = "所有带 * 标记的字段均不能为空") }
                     return@launch
                 }
-                if (passwordAttempt.length < 6) { // 简单的密码长度校验
+                if (passwordAttempt.length < 6) {
                     _authUiState.update { it.copy(isLoading = false, error = "密码至少需要6位") }
                     return@launch
                 }
@@ -109,40 +127,103 @@ class AuthViewModel @Inject constructor(
                     return@launch
                 }
 
-                if (!staffRepository.isInitialSetupNeeded()) {
-                    _authUiState.update { it.copy(isLoading = false, error = "老板账户已存在，请直接登录", navigationEvent = NavigationEvent.GoToLogin) }
-                    _isInitialSetupNeeded.value = false // 确保状态更新
+                // 2. 用户名唯一性检查
+                val existingUser = staffRepository.getStaffByUsername(username)
+                if (existingUser != null) {
+                    _authUiState.update { it.copy(isLoading = false, error = "登录用户名 '$username' 已被注册") }
                     return@launch
                 }
 
-                // TODO: Implement secure password hashing using a library like bcrypt
-                // val hashedPassword = PasswordHasher.hashPassword(passwordAttempt)
+                // 3. 判断是否首次设置，并确定角色
+                val isFirstSetup = staffRepository.isInitialSetupNeeded()
+                val userRole = StaffRole.BOSS // 当前公共注册默认都创建BOSS
+
+                // 4. 处理店铺创建或检查
+                var newStoreId: Long
+                val existingStoreByName = storeRepository.getStoreByName(storeName) // 检查店铺名是否已存在
+
+                if (isFirstSetup) {
+                    if (existingStoreByName != null) {
+                        // 理论上首次设置，店铺名不应存在，除非之前有残留数据或并发问题
+                        _authUiState.update { it.copy(isLoading = false, error = "店铺名称 '$storeName' 已作为初始店铺存在，请尝试其他名称或联系支持。") }
+                        return@launch
+                    }
+                    val newStore = Store(storeName = storeName)
+                    newStoreId = storeRepository.insertStore(newStore)
+                    if (newStoreId <= 0) {
+                        _authUiState.update { it.copy(isLoading = false, error = "创建新店铺失败 (首次设置)") }
+                        return@launch
+                    }
+                    Log.d("AuthViewModel", "New store '$storeName' created with ID: $newStoreId for first setup.")
+                } else {
+                    // 非首次设置，如果允许通过公共注册创建新店铺
+                    if (existingStoreByName != null) {
+                        // 如果要求店铺名全局唯一，且已存在，则报错
+                        // 如果允许同名店铺（不推荐，除非有其他区分方式），则可以继续创建
+                        // 为了简化，我们假设店铺名需要唯一
+                        _authUiState.update { it.copy(isLoading = false, error = "店铺名称 '$storeName' 已存在，请使用其他名称或联系现有老板在该店铺下添加账户。") }
+                        return@launch
+                    }
+                    val newStore = Store(storeName = storeName)
+                    newStoreId = storeRepository.insertStore(newStore)
+                    if (newStoreId <= 0) {
+                        _authUiState.update { it.copy(isLoading = false, error = "创建新店铺失败") }
+                        return@launch
+                    }
+                    Log.d("AuthViewModel", "New store '$storeName' created with ID: $newStoreId.")
+                }
+
+                // 5. 密码哈希 (TODO)
                 val hashedPassword = passwordAttempt // 开发初期简化
-                Log.d("AuthViewModel", "Password for boss $username (simplified): $hashedPassword")
 
-
-                val newBoss = Staff(
-                    name = bossName,
-                    role = StaffRole.BOSS,
+                // 6. 创建 Staff 对象
+                val newStaff = Staff(
+                    storeId = newStoreId, // 关联到新创建或已存在的店铺ID
+                    name = staffName,
+                    role = userRole,
                     username = username,
                     passwordHash = hashedPassword,
                     isActive = true
                 )
-                val newStaffId = staffRepository.insertOrUpdateStaff(newBoss)
-                Log.d("AuthViewModel", "Boss registered with ID: $newStaffId")
-
+                val newStaffId = staffRepository.insertOrUpdateStaff(newStaff)
+                Log.d("AuthViewModel", "Staff '$username' registered with ID: $newStaffId, role: $userRole, for storeId: $newStoreId")
 
                 if (newStaffId > 0) {
-                    val registeredBoss = newBoss.copy(id = newStaffId)
-                    sessionManager.saveLoginSession(registeredBoss) // 保存完整 Staff 对象
-                    _isInitialSetupNeeded.value = false
-                    _authUiState.update { it.copy(isLoading = false, navigationEvent = NavigationEvent.GoToMainApp, loggedInStaffInfo = registeredBoss) }
+                    // 7. (可选) 回填 Store 的 ownerStaffId (仅当创建新店铺且是BOSS时)
+                    if (userRole == StaffRole.BOSS) { // 只有老板创建店铺时回填
+                        val createdStore = storeRepository.getStoreById(newStoreId)
+                        if (createdStore != null) {
+                            val storeToUpdateWithOwner = createdStore.copy(
+                                ownerStaffId = newStaffId,
+                                updatedAt = System.currentTimeMillis() // 更新时间戳
+                            )
+                            val updateResult = storeRepository.updateStore(storeToUpdateWithOwner)
+                            if (updateResult > 0) {
+                                Log.d("AuthViewModel", "Store '${createdStore.storeName}' updated with owner ID: $newStaffId")
+                            } else {
+                                Log.w("AuthViewModel", "Failed to update store '${createdStore.storeName}' with owner ID, or no changes made.")
+                            }
+                        } else {
+                            Log.e("AuthViewModel", "Failed to retrieve store with ID $newStoreId to update owner.")
+                        }
+                    }
+
+                    // 8. 保存登录会话
+                    val registeredStaff = newStaff.copy(id = newStaffId)
+                    sessionManager.saveLoginSession(
+                        staff = registeredStaff,
+                        storeId = newStoreId,
+                        storeName = storeName // 使用用户输入的店铺名
+                    )
+                    _isInitialSetupNeeded.value = false // 初始设置完成
+                    _authUiState.update { it.copy(isLoading = false, navigationEvent = NavigationEvent.GoToMainApp, loggedInStaffInfo = registeredStaff) }
+                    Log.d("AuthViewModel", "Account registration successful. Navigating to Main App.")
                 } else {
-                    _authUiState.update { it.copy(isLoading = false, error = "老板账户注册失败") }
+                    _authUiState.update { it.copy(isLoading = false, error = "账户注册失败") }
                 }
             } catch (e: Exception) {
-                Log.e("AuthViewModel", "Error registering boss", e)
-                _authUiState.update { it.copy(isLoading = false, error = "注册老板账户时发生错误: ${e.localizedMessage}") }
+                Log.e("AuthViewModel", "Error registering account", e)
+                _authUiState.update { it.copy(isLoading = false, error = "注册时发生严重错误: ${e.localizedMessage}") }
             }
         }
     }
@@ -164,15 +245,26 @@ class AuthViewModel @Inject constructor(
                     return@launch
                 }
 
-                // TODO: Implement secure password verification using PasswordHasher.verifyPassword
-                // val isPasswordCorrect = PasswordHasher.verifyPassword(passwordAttempt, staff.passwordHash)
-                val isPasswordCorrect = (passwordAttempt == staff.passwordHash) // 开发初期简化
-                Log.d("AuthViewModel", "Password check for $username: $isPasswordCorrect (simplified)")
-
+                // TODO: Implement secure password verification
+                val isPasswordCorrect = (passwordAttempt == staff.passwordHash)
 
                 if (isPasswordCorrect) {
-                    sessionManager.saveLoginSession(staff) // 保存完整 Staff 对象
+                    // --- 登录成功后，获取店铺信息 ---
+                    val store = storeRepository.getStoreById(staff.storeId) // staff.storeId 应该是 Long (非空)
+                    if (store == null) {
+                        Log.e("AuthViewModel", "Login successful but could not find store with ID: ${staff.storeId} for staff: ${staff.username}")
+                        _authUiState.update { it.copy(isLoading = false, error = "登录成功，但无法加载店铺信息") }
+                        // 这里可能需要清除会话或标记为部分登录状态
+                        return@launch
+                    }
+
+                    sessionManager.saveLoginSession(
+                        staff = staff,
+                        storeId = store.id,
+                        storeName = store.storeName
+                    )
                     _authUiState.update { it.copy(isLoading = false, navigationEvent = NavigationEvent.GoToMainApp, loggedInStaffInfo = staff) }
+                    Log.d("AuthViewModel", "Login successful for ${staff.username} at store ${store.storeName}")
                 } else {
                     _authUiState.update { it.copy(isLoading = false, error = "用户名或密码错误") }
                 }

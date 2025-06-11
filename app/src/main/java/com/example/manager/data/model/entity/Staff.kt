@@ -2,6 +2,7 @@ package com.example.manager.data.model.entity
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverters
@@ -10,12 +11,27 @@ import com.example.manager.data.model.typeconverter.Converters // 下一步创�
 
 @Entity(
     tableName = "staff",
-    indices = [Index(value = ["username"], unique = true)]
+    foreignKeys = [
+        ForeignKey(
+            entity = Store::class, // 关联到 Store 表
+            parentColumns = ["id"],
+            childColumns = ["store_id"],
+            onDelete = ForeignKey.RESTRICT // 通常不允许删除还有员工的店铺，或根据业务定为 CASCADE 或 SET_NULL
+        )
+    ],
+    indices = [
+        Index(value = ["username"], unique = true),
+        Index(value = ["store_id"])
+    ]
+
 )
 @TypeConverters(Converters::class) // 应用 StaffRole 的转换器
 data class Staff(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+
+    @ColumnInfo(name = "store_id")
+    val storeId: Long, // 关联到 Store 表的 ID
 
     @ColumnInfo(name = "name")
     val name: String,

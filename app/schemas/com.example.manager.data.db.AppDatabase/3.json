@@ -2,15 +2,87 @@
   "formatVersion": 1,
   "database": {
     "version": 3,
-    "identityHash": "9b3f7c671e4b26ef497255e58cc16f31",
+    "identityHash": "6f6a4f73b46fa1e267cde067d9dd84d8",
     "entities": [
       {
-        "tableName": "staff",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `role` TEXT NOT NULL, `username` TEXT NOT NULL, `password_hash` TEXT NOT NULL, `is_active` INTEGER NOT NULL DEFAULT 1, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL)",
+        "tableName": "stores",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `store_name` TEXT NOT NULL, `address` TEXT, `phone` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `owner_staff_id` INTEGER)",
         "fields": [
           {
             "fieldPath": "id",
             "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "storeName",
+            "columnName": "store_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "address",
+            "columnName": "address",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "phone",
+            "columnName": "phone",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ownerStaffId",
+            "columnName": "owner_staff_id",
+            "affinity": "INTEGER",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_stores_store_name",
+            "unique": true,
+            "columnNames": [
+              "store_name"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_stores_store_name` ON `${TABLE_NAME}` (`store_name`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "staff",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `store_id` INTEGER NOT NULL, `name` TEXT NOT NULL, `role` TEXT NOT NULL, `username` TEXT NOT NULL, `password_hash` TEXT NOT NULL, `is_active` INTEGER NOT NULL DEFAULT 1, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, FOREIGN KEY(`store_id`) REFERENCES `stores`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "storeId",
+            "columnName": "store_id",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -73,9 +145,30 @@
             ],
             "orders": [],
             "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_staff_username` ON `${TABLE_NAME}` (`username`)"
+          },
+          {
+            "name": "index_staff_store_id",
+            "unique": false,
+            "columnNames": [
+              "store_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_staff_store_id` ON `${TABLE_NAME}` (`store_id`)"
           }
         ],
-        "foreignKeys": []
+        "foreignKeys": [
+          {
+            "table": "stores",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "store_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
       },
       {
         "tableName": "customers",
@@ -258,11 +351,17 @@
       },
       {
         "tableName": "orders",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `order_number` TEXT NOT NULL, `customer_id` INTEGER, `order_date` INTEGER NOT NULL, `total_amount` REAL NOT NULL DEFAULT 0.0, `discount` REAL NOT NULL DEFAULT 0.0, `final_amount` REAL NOT NULL DEFAULT 0.0, `down_payment` REAL NOT NULL DEFAULT 0.0, `status` TEXT NOT NULL, `completion_date` INTEGER, `responsible_staff_ids` TEXT, `notes` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `creating_staff_id` INTEGER, FOREIGN KEY(`customer_id`) REFERENCES `customers`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT , FOREIGN KEY(`creating_staff_id`) REFERENCES `staff`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `store_id` INTEGER NOT NULL, `order_number` TEXT NOT NULL, `customer_id` INTEGER, `order_date` INTEGER NOT NULL, `total_amount` REAL NOT NULL DEFAULT 0.0, `discount` REAL NOT NULL DEFAULT 0.0, `final_amount` REAL NOT NULL DEFAULT 0.0, `down_payment` REAL NOT NULL DEFAULT 0.0, `status` TEXT NOT NULL, `completion_date` INTEGER, `responsible_staff_ids` TEXT, `notes` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `creating_staff_id` INTEGER, FOREIGN KEY(`customer_id`) REFERENCES `customers`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT , FOREIGN KEY(`creating_staff_id`) REFERENCES `staff`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL , FOREIGN KEY(`store_id`) REFERENCES `stores`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
             "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "storeId",
+            "columnName": "store_id",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -397,6 +496,15 @@
             ],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_orders_creating_staff_id` ON `${TABLE_NAME}` (`creating_staff_id`)"
+          },
+          {
+            "name": "index_orders_store_id",
+            "unique": false,
+            "columnNames": [
+              "store_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_orders_store_id` ON `${TABLE_NAME}` (`store_id`)"
           }
         ],
         "foreignKeys": [
@@ -413,10 +521,21 @@
           },
           {
             "table": "staff",
-            "onDelete": "RESTRICT",
+            "onDelete": "SET NULL",
             "onUpdate": "NO ACTION",
             "columns": [
               "creating_staff_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "stores",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "store_id"
             ],
             "referencedColumns": [
               "id"
@@ -902,11 +1021,17 @@
       },
       {
         "tableName": "ledger_entries",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `entry_type` TEXT NOT NULL, `amount` REAL NOT NULL, `entry_date` INTEGER NOT NULL, `description` TEXT NOT NULL, `related_order_id` INTEGER, `related_customer_id` INTEGER, `payment_id` INTEGER, `staff_id` INTEGER NOT NULL, `notes` TEXT, `created_at` INTEGER NOT NULL, FOREIGN KEY(`related_order_id`) REFERENCES `orders`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL , FOREIGN KEY(`related_customer_id`) REFERENCES `customers`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL , FOREIGN KEY(`payment_id`) REFERENCES `payments`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL , FOREIGN KEY(`staff_id`) REFERENCES `staff`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `store_id` INTEGER NOT NULL, `entry_type` TEXT NOT NULL, `amount` REAL NOT NULL, `entry_date` INTEGER NOT NULL, `description` TEXT NOT NULL, `related_order_id` INTEGER, `related_customer_id` INTEGER, `payment_id` INTEGER, `staff_id` INTEGER NOT NULL, `notes` TEXT, `created_at` INTEGER NOT NULL, FOREIGN KEY(`related_order_id`) REFERENCES `orders`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL , FOREIGN KEY(`related_customer_id`) REFERENCES `customers`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL , FOREIGN KEY(`payment_id`) REFERENCES `payments`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL , FOREIGN KEY(`staff_id`) REFERENCES `staff`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT , FOREIGN KEY(`store_id`) REFERENCES `stores`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
             "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "storeId",
+            "columnName": "store_id",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -1031,6 +1156,15 @@
             ],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_ledger_entries_staff_id` ON `${TABLE_NAME}` (`staff_id`)"
+          },
+          {
+            "name": "index_ledger_entries_store_id",
+            "unique": false,
+            "columnNames": [
+              "store_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_ledger_entries_store_id` ON `${TABLE_NAME}` (`store_id`)"
           }
         ],
         "foreignKeys": [
@@ -1073,6 +1207,17 @@
             "onUpdate": "NO ACTION",
             "columns": [
               "staff_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "stores",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "store_id"
             ],
             "referencedColumns": [
               "id"
@@ -1190,7 +1335,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '9b3f7c671e4b26ef497255e58cc16f31')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '6f6a4f73b46fa1e267cde067d9dd84d8')"
     ]
   }
 }

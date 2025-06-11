@@ -14,6 +14,7 @@ import com.example.manager.ui.customer.CustomerListScreen // <-- Import your scr
 import com.example.manager.ui.theme.ManagerTheme
 import androidx.compose.runtime.getValue
 import com.example.manager.ui.auth.LoginScreen
+import com.example.manager.ui.navigation.AppNavigation
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {

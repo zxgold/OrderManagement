@@ -35,6 +35,12 @@ import com.example.manager.data.model.typeconverter.Converters // 下一步创�
             parentColumns = ["id"],
             childColumns = ["staff_id"],
             onDelete = ForeignKey.RESTRICT // 记录人不能随意删除
+        ),
+        ForeignKey(
+            entity = Store::class,
+            parentColumns = ["id"],
+            childColumns = ["store_id"],
+            onDelete = ForeignKey.CASCADE // 店铺删除，账目也删除 (慎重!) 或 RESTRICT
         )
     ],
     indices = [
@@ -43,13 +49,17 @@ import com.example.manager.data.model.typeconverter.Converters // 下一步创�
         Index(value = ["related_order_id"]),
         Index(value = ["related_customer_id"]),
         Index(value = ["payment_id"]),
-        Index(value = ["staff_id"])
+        Index(value = ["staff_id"]),
+        Index(value = ["store_id"])
     ]
 )
 @TypeConverters(Converters::class)
 data class LedgerEntry(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+
+    @ColumnInfo(name = "store_id")
+    val storeId: Long, // 关联到 Store 表的 ID
 
     @ColumnInfo(name = "entry_type")
     val entryType: LedgerEntryType, // INCOME or EXPENSE

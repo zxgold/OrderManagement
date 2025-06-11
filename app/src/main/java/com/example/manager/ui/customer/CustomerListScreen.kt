@@ -36,7 +36,15 @@ fun CustomerListScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     // 获取当前会话状态，提供一个非 null 的初始值以避免 LaunchedEffect 首次运行问题
     val currentSession by authViewModel.currentUserSessionFlow.collectAsStateWithLifecycle(
-        initialValue = UserSession(isLoggedIn = false, staffId = null, staffRole = null, username = null, staffName = null)
+        initialValue = UserSession(
+            isLoggedIn = false,
+            staffId = null,
+            staffRole = null,
+            username = null,
+            staffName = null,
+            storeId = null,
+            storeName = null
+        )
     )
     val currentRole = currentSession.staffRole
 

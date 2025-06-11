@@ -17,6 +17,7 @@ private const val DATABASE_VERSION = 3 // <--- !! 修改为你确定的新版本
 @Database(
     entities = [
         // --- 列出 V3 版本包含的所有 Entity 类 ---
+        Store::class,
         Staff::class,
         Customer::class,
         Product::class,
@@ -35,6 +36,7 @@ private const val DATABASE_VERSION = 3 // <--- !! 修改为你确定的新版本
 abstract class AppDatabase : RoomDatabase() {
 
     // --- 提供获取每个 DAO 实例的抽象方法 ---
+    abstract fun storeDao(): StoreDao
     abstract fun staffDao(): StaffDao
     abstract fun customerDao(): CustomerDao
     abstract fun productDao(): ProductDao
