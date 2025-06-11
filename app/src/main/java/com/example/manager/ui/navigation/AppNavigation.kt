@@ -18,9 +18,10 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.manager.ui.auth.BossRegistrationScreen
+import com.example.manager.ui.auth.RegistrationScreen
 import com.example.manager.ui.auth.LoginScreen
 import com.example.manager.ui.customer.CustomerListScreen
+import com.example.manager.ui.main.MainScreen
 import com.example.manager.viewmodel.AuthViewModel
 import com.example.manager.viewmodel.NavigationEvent // 确保导入这个
 
@@ -28,9 +29,12 @@ import com.example.manager.viewmodel.NavigationEvent // 确保导入这个
 object AppScreenRoutes { // 改个名字以区分之前的 AppDestinations
     const val LOADING_SCREEN_ROUTE = "loading_screen" // 新增加载屏幕路由
     const val LOGIN_ROUTE = "login"
-    const val BOSS_REGISTRATION_ROUTE = "boss_registration"
+    const val REGISTRATION_ROUTE = "registration"
+    const val MAIN_APP_ROUTE = "main_app"         // <-- 新增：主应用框架路由
     const val CUSTOMER_LIST_ROUTE = "customer_list" // 假设这是主应用入口
 }
+
+
 
 @Composable
 fun AppNavigation(
@@ -49,8 +53,8 @@ fun AppNavigation(
 
         when (event) {
             is NavigationEvent.GoToBossRegistration -> {
-                if (currentRoute != AppScreenRoutes.BOSS_REGISTRATION_ROUTE) {
-                    navController.navigate(AppScreenRoutes.BOSS_REGISTRATION_ROUTE) {
+                if (currentRoute != AppScreenRoutes.REGISTRATION_ROUTE) {
+                    navController.navigate(AppScreenRoutes.REGISTRATION_ROUTE) {
                         popUpTo(0) { inclusive = true } // 清空整个回退栈
                         launchSingleTop = true
                     }
@@ -67,8 +71,8 @@ fun AppNavigation(
                 }
             }
             is NavigationEvent.GoToMainApp -> {
-                if (currentRoute != AppScreenRoutes.CUSTOMER_LIST_ROUTE) {
-                    navController.navigate(AppScreenRoutes.CUSTOMER_LIST_ROUTE) {
+                if (currentRoute != AppScreenRoutes.MAIN_APP_ROUTE) {
+                    navController.navigate(AppScreenRoutes.MAIN_APP_ROUTE) {
                         popUpTo(0) { inclusive = true }
                         launchSingleTop = true
                     }
@@ -102,8 +106,8 @@ fun AppNavigation(
             // 上面的 LaunchedEffect 会捕获这个事件并执行导航。
         }
 
-        composable(AppScreenRoutes.BOSS_REGISTRATION_ROUTE) {
-            BossRegistrationScreen(
+        composable(AppScreenRoutes.REGISTRATION_ROUTE) {
+            RegistrationScreen(
                 viewModel = authViewModel, // 传递 AuthViewModel
                 onNavigateToMainApp = {
                     // 这个回调现在由 ViewModel 的 navigationEvent 驱动，
@@ -126,8 +130,8 @@ fun AppNavigation(
                 // --- 这是关键的新增/修改部分 ---
                 onNavigateToRegistration = {
                     Log.d("AppNav/LoginScreen", "onNavigateToRegistration requested, navigating to BOSS_REGISTRATION_ROUTE")
-                    if (navController.currentDestination?.route != AppScreenRoutes.BOSS_REGISTRATION_ROUTE) {
-                        navController.navigate(AppScreenRoutes.BOSS_REGISTRATION_ROUTE) {
+                    if (navController.currentDestination?.route != AppScreenRoutes.REGISTRATION_ROUTE) {
+                        navController.navigate(AppScreenRoutes.REGISTRATION_ROUTE) {
                             // 从登录页去注册页，通常不希望清除登录页，以便用户可以返回。
                             // 如果注册成功后直接进入主应用，则注册成功时会清空栈。
                             launchSingleTop = true // 避免在栈顶重复创建注册页
@@ -138,15 +142,10 @@ fun AppNavigation(
             )
         }
 
-        composable(AppScreenRoutes.CUSTOMER_LIST_ROUTE) {
-            CustomerListScreen(
-                // 这里 CustomerListScreen 会通过 hiltViewModel() 获取它自己的 CustomerViewModel
-                // 如果需要登出功能，可以考虑从这里调用 authViewModel.logout()
-            )
-            // 示例：添加一个登出按钮
-            // Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Bottom) {
-            //     Button(onClick = { authViewModel.logout() }) { Text("登出") }
-            // }
+        composable(AppScreenRoutes.MAIN_APP_ROUTE) { // 新增 MainScreen 的路由
+            MainScreen(mainNavController = navController) // 传递上层 navController
         }
+
+
     }
 }

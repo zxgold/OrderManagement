@@ -24,7 +24,7 @@ import com.example.manager.viewmodel.NavigationEvent
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
-fun BossRegistrationScreen( // 函数名可以稍后统一改为 RegistrationScreen
+fun RegistrationScreen(
     viewModel: AuthViewModel = hiltViewModel(),
     onNavigateToMainApp: () -> Unit,
     onNavigateToLogin: () -> Unit
@@ -64,12 +64,13 @@ fun BossRegistrationScreen( // 函数名可以稍后统一改为 RegistrationScr
     ) { paddingValues ->
         Column(
             modifier = Modifier
-                .padding(paddingValues)
+                .padding(paddingValues) // 应用Scaffold的padding
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .imePadding() // <-- 【关键修改】添加对键盘的处理
+                .verticalScroll(rememberScrollState()) // 使内容可滚动
+                .padding(16.dp), // 应用内容区域的padding
+            horizontalAlignment = Alignment.CenterHorizontally
+            // <-- 【可选但推荐】移除了 verticalArrangement.Center
         ) {
             Text(
                 text = if (isInitialSetupNeeded) "欢迎使用 OrderManager！" else "注册新账户",
@@ -180,7 +181,7 @@ fun BossRegistrationScreen( // 函数名可以稍后统一改为 RegistrationScr
 @Composable
 fun RegistrationScreenPreview() { // 更新 Preview 函数名
     ManagerTheme {
-        BossRegistrationScreen( // Composable 函数名可以暂时保留
+        RegistrationScreen( // Composable 函数名可以暂时保留
             onNavigateToMainApp = { Log.d("Preview", "Navigate to Main App") },
             onNavigateToLogin = { Log.d("Preview", "Navigate to Login") }
         )
