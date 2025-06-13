@@ -14,6 +14,7 @@ import androidx.navigation.compose.*
 import com.example.manager.ui.customer.CustomerListScreen // 我们已有的客户列表
 import com.example.manager.ui.me.MeScreen
 import com.example.manager.ui.navigation.BottomNavItem // 导入导航项定义
+import com.example.manager.ui.work.WorkScreen
 import com.example.manager.viewmodel.AuthViewModel
 
 // import com.example.manager.ui.work.WorkScreen // 后续创建
@@ -75,8 +76,8 @@ fun MainScreen(
             modifier = Modifier.padding(innerPadding) // 应用 Scaffold 的 padding
         ) {
             composable(BottomNavItem.Work.route) {
-                // WorkScreen() // 旧的占位符或多入口版本
-                CustomerListScreen(authViewModel = authViewModel) // **直接将客户列表作为“工作”页的初始内容**
+                WorkScreen(bottomNavController = bottomSheetNavController) // 旧的占位符或多入口版本
+                // CustomerListScreen(authViewModel = authViewModel) // **直接将客户列表作为“工作”页的初始内容**
             }
             composable(BottomNavItem.Me.route) {
                 MeScreen(
