@@ -26,7 +26,8 @@ import com.example.manager.viewmodel.AuthViewModel
 
 @Composable
 fun MeScreen(
-    authViewModel: AuthViewModel = hiltViewModel(),
+    // authViewModel: AuthViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel,
     // 需要 AppNavigation 的 NavController 来执行全局导航，例如导航到员工管理屏幕
     mainAppNavController: NavController
 ) {

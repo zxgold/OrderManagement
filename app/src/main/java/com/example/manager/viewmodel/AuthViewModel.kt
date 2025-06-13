@@ -33,7 +33,7 @@ data class AuthUiState(
 sealed class NavigationEvent {
     object GoToMainApp : NavigationEvent()
     object GoToLogin : NavigationEvent()
-    object GoToBossRegistration : NavigationEvent()
+    object GoToRegistration : NavigationEvent()
     object Idle : NavigationEvent() // 表示没有待处理的导航事件
 }
 
@@ -277,10 +277,24 @@ class AuthViewModel @Inject constructor(
 
     fun logout() {
         viewModelScope.launch {
-            _authUiState.update { it.copy(isLoading = true) }
-            Log.d("AuthViewModel", "Logging out...")
+            // 1. 立即重置导航事件，防止之前的事件影响后续操作
+            _authUiState.update { it.copy(isLoading = true, navigationEvent = NavigationEvent.Idle, error = null) }
+            Log.i("AuthViewModel", "logout() called. Clearing session... Current authUiState: ${authUiState.value}")
+
             sessionManager.clearLoginSession()
-            _authUiState.update { it.copy(isLoading = false, navigationEvent = NavigationEvent.GoToLogin, loggedInStaffInfo = null) }
+            Log.i("AuthViewModel", "Session cleared.")
+
+            // 2. 延迟一小段时间确保状态更新能被观察者感知，再发出导航事件 (可选，但有时有帮助)
+            // kotlinx.coroutines.delay(50) // 50ms 延迟，可以根据情况调整或移除
+
+            _authUiState.update {
+                it.copy(
+                    isLoading = false,
+                    navigationEvent = NavigationEvent.GoToLogin, // 发出导航到登录的事件
+                    loggedInStaffInfo = null // 清空已登录用户信息
+                )
+            }
+            Log.i("AuthViewModel", "GoToLogin event emitted. Final authUiState: ${authUiState.value}")
         }
     }
 

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
@@ -26,12 +27,13 @@ import com.example.manager.data.preferences.UserSession // 导入 UserSession
 import com.example.manager.viewmodel.AuthViewModel // 导入 AuthViewModel
 import com.example.manager.viewmodel.CustomerViewModel
 import androidx.compose.material3.HorizontalDivider // 你使用的是 HorizontalDivider
+import androidx.compose.ui.text.input.KeyboardType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomerListScreen(
     viewModel: CustomerViewModel = hiltViewModel(),
-    authViewModel: AuthViewModel = hiltViewModel() // 获取 AuthViewModel 实例
+    authViewModel: AuthViewModel // <-- **接收 AuthViewModel 参数**
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     // 获取当前会话状态，提供一个非 null 的初始值以避免 LaunchedEffect 首次运行问题
@@ -145,8 +147,8 @@ fun CustomerListScreen(
     if (showAddDialog) {
         AddCustomerDialog(
             onDismiss = { showAddDialog = false },
-            onConfirm = { name, phone, address ->
-                viewModel.addCustomer(name, phone.ifBlank { null }, address.ifBlank { null })
+            onConfirm = { name, phone, address, remark ->
+                viewModel.addCustomer(name, phone, address.ifBlank { null }, remark.ifBlank { null })
                 showAddDialog = false
             }
         )
@@ -222,55 +224,85 @@ fun CustomerItem(
 @Composable
 fun AddCustomerDialog(
     onDismiss: () -> Unit,
-    onConfirm: (name: String, phone: String, address: String) -> Unit // 这里参数目前没有包含备注
+    onConfirm: (name: String, phone: String, address: String, remark: String) -> Unit // 这里参数目前没有包含备注
 ) {
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
+    var remark by remember { mutableStateOf("") } // 添加 remark 状态
     // 如果添加客户也需要备注，这里和 EditCustomerDialog 类似处理
-    var nameError by remember { mutableStateOf(false) }
+    var nameError by remember { mutableStateOf<String?>(null) }    // 姓名错误信息
+    var phoneError by remember { mutableStateOf<String?>(null) } // 新增 phoneError
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("添加新客户") },
         text = {
-            Column { // 简单包裹一下，如果未来内容多可以加滚动
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                // 姓名
                 OutlinedTextField(
                     value = name,
-                    onValueChange = { name = it; nameError = it.isBlank() },
+                    onValueChange = {
+                        name = it
+                        nameError = if (it.isBlank()) "姓名不能为空" else null // 更新错误信息
+                    },
                     label = { Text("客户姓名 *") },
-                    isError = nameError,
+                    isError = nameError != null, // 根据是否有错误信息来判断
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-                if (nameError) {
-                    Text("姓名不能为空", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                nameError?.let { // 如果有错误信息，则显示
+                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
+
+                // 电话
                 OutlinedTextField(
                     value = phone,
-                    onValueChange = { phone = it },
-                    label = { Text("联系电话") },
+                    onValueChange = {
+                        phone = it
+                        phoneError = if (it.isBlank()) "电话不能为空" else null // 更新错误信息
+                    },
+                    label = { Text("联系电话 *") }, // 标记为必填
+                    isError = phoneError != null,
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                     modifier = Modifier.fillMaxWidth()
                 )
+                phoneError?.let { // 如果有错误信息，则显示
+                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
                 Spacer(modifier = Modifier.height(8.dp))
+
+                // 地址
                 OutlinedTextField(
                     value = address,
                     onValueChange = { address = it },
                     label = { Text("地址") },
                     modifier = Modifier.fillMaxWidth()
                 )
-                // 如果添加客户时也需要备注，在这里添加 TextField
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // 备注
+                OutlinedTextField(
+                    value = remark,
+                    onValueChange = { remark = it },
+                    label = { Text("备注") },
+                    modifier = Modifier.fillMaxWidth(),
+                    maxLines = 3
+                )
             }
         },
         confirmButton = {
             TextButton(
                 onClick = {
-                    if (name.isNotBlank()) {
-                        onConfirm(name, phone, address) // 注意这里没有传备注
-                    } else {
-                        nameError = true
+                    // 在点击确认时，再次设置错误状态（以防用户直接点击确认而不修改）
+                    nameError = if (name.isBlank()) "姓名不能为空" else null
+                    phoneError = if (phone.isBlank()) "电话不能为空" else null
+
+                    // 只有当没有错误时才调用 onConfirm
+                    if (nameError == null && phoneError == null) {
+                        onConfirm(name, phone, address.ifBlank { "" }, remark.ifBlank { "" })
                     }
                 }
             ) { Text("确认") }

@@ -52,7 +52,7 @@ fun AppNavigation(
         val currentRoute = navController.currentDestination?.route
 
         when (event) {
-            is NavigationEvent.GoToBossRegistration -> {
+            is NavigationEvent.GoToRegistration -> {
                 if (currentRoute != AppScreenRoutes.REGISTRATION_ROUTE) {
                     navController.navigate(AppScreenRoutes.REGISTRATION_ROUTE) {
                         popUpTo(0) { inclusive = true } // 清空整个回退栈
@@ -63,10 +63,18 @@ fun AppNavigation(
             }
             is NavigationEvent.GoToLogin -> {
                 if (currentRoute != AppScreenRoutes.LOGIN_ROUTE) {
+                    Log.i("AppNavigation", "GoToLogin event received. Current route: $currentRoute. Navigating to Login.")
                     navController.navigate(AppScreenRoutes.LOGIN_ROUTE) {
-                        popUpTo(0) { inclusive = true }
+                        popUpTo(0) { inclusive = true } // 清空整个回退栈
                         launchSingleTop = true
                     }
+                    authViewModel.navigationEventConsumed()
+                    Log.i("AppNavigation", "GoToLogin: Navigation event consumed AFTER navigate.")
+                } else {
+                    Log.i("AppNavigation", "GoToLogin event received, but already on Login screen. Consuming event.")
+                    // 即使已经在登录页，也应该消耗事件，以防万一。
+                    // 特别是如果这个事件是由于 ViewModel 初始化时就发出的（比如 checkInitialAppState）
+                    // 并且应用启动时直接就是登录页。
                     authViewModel.navigationEventConsumed()
                 }
             }
@@ -123,27 +131,25 @@ fun AppNavigation(
 
         composable(AppScreenRoutes.LOGIN_ROUTE) {
             LoginScreen(
-                viewModel = authViewModel,
+                viewModel = authViewModel, // ViewModel 从 AppNavigation 传递，保证是同一个实例
                 onNavigateToMainApp = {
+                    // 这个回调通常由 ViewModel 的 NavigationEvent 驱动，LoginScreen 本身不直接导航
                     Log.d("AppNav/LoginScreen", "onNavigateToMainApp called (event should be handled by AppNavigation)")
                 },
-                // --- 这是关键的新增/修改部分 ---
                 onNavigateToRegistration = {
-                    Log.d("AppNav/LoginScreen", "onNavigateToRegistration requested, navigating to BOSS_REGISTRATION_ROUTE")
+                    Log.d("AppNav/LoginScreen", "onNavigateToRegistration requested, navigating to REGISTRATION_ROUTE") // 已更新为 REGISTRATION_ROUTE
+                    // 确保导航到正确的注册路由
                     if (navController.currentDestination?.route != AppScreenRoutes.REGISTRATION_ROUTE) {
                         navController.navigate(AppScreenRoutes.REGISTRATION_ROUTE) {
-                            // 从登录页去注册页，通常不希望清除登录页，以便用户可以返回。
-                            // 如果注册成功后直接进入主应用，则注册成功时会清空栈。
-                            launchSingleTop = true // 避免在栈顶重复创建注册页
+                            launchSingleTop = true
                         }
                     }
                 }
-                // ------------------------------------
             )
         }
 
         composable(AppScreenRoutes.MAIN_APP_ROUTE) { // 新增 MainScreen 的路由
-            MainScreen(mainNavController = navController) // 传递上层 navController
+            MainScreen(mainNavController = navController, authViewModel = authViewModel) // 传递上层 navController
         }
 
 

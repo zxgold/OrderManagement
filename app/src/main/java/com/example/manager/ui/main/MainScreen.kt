@@ -14,6 +14,8 @@ import androidx.navigation.compose.*
 import com.example.manager.ui.customer.CustomerListScreen // 我们已有的客户列表
 import com.example.manager.ui.me.MeScreen
 import com.example.manager.ui.navigation.BottomNavItem // 导入导航项定义
+import com.example.manager.viewmodel.AuthViewModel
+
 // import com.example.manager.ui.work.WorkScreen // 后续创建
 // import com.example.manager.ui.me.MeScreen // 后续创建
 
@@ -23,8 +25,9 @@ import com.example.manager.ui.navigation.BottomNavItem // 导入导航项定义
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter") // 通常由 NavHost 处理 padding
 @Composable
 fun MainScreen(
-    mainNavController: NavHostController // 这是从 AppNavigation 传过来的，用于 MainScreen 内部的导航（如果需要）
+    mainNavController: NavHostController, // 这是从 AppNavigation 传过来的，用于 MainScreen 内部的导航（如果需要）
     // 或者，底部导航直接控制内容切换，不需要嵌套 NavHostController
+    authViewModel: AuthViewModel
 ) {
     val bottomNavItems = listOf(
         BottomNavItem.Work,
@@ -73,16 +76,20 @@ fun MainScreen(
         ) {
             composable(BottomNavItem.Work.route) {
                 // WorkScreen() // 旧的占位符或多入口版本
-                CustomerListScreen() // **直接将客户列表作为“工作”页的初始内容**
+                CustomerListScreen(authViewModel = authViewModel) // **直接将客户列表作为“工作”页的初始内容**
             }
             composable(BottomNavItem.Me.route) {
-                MeScreen(mainAppNavController = mainNavController) // MeScreen 暂时还是占位符或骨架
+                MeScreen(
+                    authViewModel = authViewModel,     // <-- **将接收到的 AuthViewModel 传递下去**
+                    mainAppNavController = mainNavController
+                )
+                // MeScreen(mainAppNavController = mainNavController) // MeScreen 暂时还是占位符或骨架
             }
             // 你可以将 CustomerListScreen 作为一个独立的路由目标，从 WorkScreen 导航过去
             // 或者将 CustomerListScreen 的内容直接嵌入 WorkScreen
             // 为简单起见，我们可以先让 WorkScreen 直接显示 CustomerListScreen
             composable("customer_list_for_work") { // 举例，如果 WorkScreen 导航到它
-                CustomerListScreen()
+                CustomerListScreen(authViewModel = authViewModel)
             }
         }
     }

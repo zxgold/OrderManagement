@@ -49,10 +49,39 @@ fun RegistrationScreen(
     var storeNameError by remember { mutableStateOf<String?>(null) } // <-- **新增店铺名称错误状态**
 
     // 处理导航事件 (保持不变)
-    LaunchedEffect(key1 = authUiState.navigationEvent) { /* ... */ }
+    LaunchedEffect(key1 = authUiState.navigationEvent) {
+        Log.d("RegistrationScreen", "Navigation Event observed: ${authUiState.navigationEvent}")
+        when (authUiState.navigationEvent) {
+            is NavigationEvent.GoToMainApp -> {
+                onNavigateToMainApp()
+                viewModel.navigationEventConsumed() // 消耗事件
+            }
+            is NavigationEvent.GoToLogin -> {
+                onNavigateToLogin()
+                viewModel.navigationEventConsumed() // 消耗事件
+            }
+            // 如果有 GoToRegistration 事件，也在这里处理（虽然从注册页通常不会再导航到注册页）
+            is NavigationEvent.GoToRegistration -> {  }
+            NavigationEvent.Idle -> { /* No-op */ }
+        }
+    }
 
-    // 处理错误消息 (保持不变)
-    LaunchedEffect(key1 = authUiState.error) { /* ... */ }
+    // --- 处理错误消息 (这是你需要替换或填充的部分) ---
+    LaunchedEffect(key1 = authUiState.error) {
+        authUiState.error?.let { errorMessage -> // 当 error 不为 null 时执行
+            Log.d("RegistrationScreen", "Error state updated: $errorMessage. Showing Snackbar.")
+            val result = snackbarHostState.showSnackbar(
+                message = errorMessage,
+                actionLabel = "知道了", // 提供一个操作让用户关闭
+                duration = SnackbarDuration.Indefinite // 持续显示直到用户交互
+            )
+            // 当 Snackbar 因为用户点击 action 或超时/滑动消失时，再消耗错误
+            if (result == SnackbarResult.ActionPerformed || result == SnackbarResult.Dismissed) {
+                Log.d("RegistrationScreen", "Snackbar dismissed or action performed for error: $errorMessage")
+                viewModel.errorShown() // 通知 ViewModel 错误已被处理
+            }
+        }
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -118,29 +147,57 @@ fun RegistrationScreen(
             // 用户名输入框 (保持不变)
             OutlinedTextField(
                 value = username,
-                onValueChange = { /* ... */ },
+                onValueChange = {
+                    username = it
+                    usernameError = if (it.isBlank()) "用户名不能为空" else null
+                },
                 label = { Text("登录用户名 *") }, /* ... */
+                modifier = Modifier.fillMaxWidth(),
+                isError = usernameError != null,
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+
             )
-            usernameError?.let { /* ... */ }
+            usernameError?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 密码输入框 (保持不变)
+            // 密码输入框
             OutlinedTextField(
                 value = password,
-                onValueChange = { /* ... */ },
-                label = { Text("设置密码 (至少6位) *") }, /* ... */
+                onValueChange = { // <-- **修正这里**
+                    password = it
+                    passwordError = if (it.length < 6) "密码至少需要6位" else null
+                    if (confirmPassword.isNotEmpty() && it != confirmPassword) {
+                        confirmPasswordError = "两次输入的密码不一致"
+                    } else if (confirmPassword.isNotEmpty() && it == confirmPassword) {
+                        confirmPasswordError = null
+                    }
+                },
+                label = { Text("设置密码 (至少6位) *") },
+                modifier = Modifier.fillMaxWidth(),
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
+                isError = passwordError != null,
+                singleLine = true
             )
-            passwordError?.let { /* ... */ }
+            passwordError?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 确认密码输入框 (保持不变)
+            // 确认密码输入框
             OutlinedTextField(
                 value = confirmPassword,
-                onValueChange = { /* ... */ },
-                label = { Text("确认密码 *") }, /* ... */
+                onValueChange = { // <-- **修正这里**
+                    confirmPassword = it
+                    confirmPasswordError = if (it != password) "两次输入的密码不一致" else null
+                },
+                label = { Text("确认密码 *") },
+                modifier = Modifier.fillMaxWidth(),
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                isError = confirmPasswordError != null,
+                singleLine = true
             )
-            confirmPasswordError?.let { /* ... */ }
-            Spacer(modifier = Modifier.height(32.dp))
+            confirmPasswordError?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
 
             // 注册按钮
             Button(
