@@ -39,7 +39,7 @@ data class Customer(
     val name: String,
 
     @ColumnInfo(name = "phone")
-    val phone: String?, // 电话号码允许为空吗？如果唯一性基于它，最好非空或有特殊处理
+    val phone: String, // 电话号码允许为空吗？如果唯一性基于它，最好非空或有特殊处理
 
     @ColumnInfo(name = "address")
     val address: String? = null,

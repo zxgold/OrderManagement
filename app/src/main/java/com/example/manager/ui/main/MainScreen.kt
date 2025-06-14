@@ -21,6 +21,7 @@ import com.example.manager.ui.navigation.AppDestinations
 import com.example.manager.ui.navigation.BottomNavItem // 导入导航项定义
 import com.example.manager.ui.work.WorkScreen
 import com.example.manager.viewmodel.AuthViewModel
+import com.example.manager.ui.customer.CustomerDetailScreen
 
 // import com.example.manager.ui.work.WorkScreen // 后续创建
 // import com.example.manager.ui.me.MeScreen // 后续创建
@@ -130,7 +131,6 @@ fun MainScreen(
                 val customerId = backStackEntry.arguments?.getLong("customerId")
                 if (customerId != null && customerId != -1L) { // 确保 customerId 有效
                     CustomerDetailScreen(
-                        customerId = customerId,
                         navController = bottomSheetNavController // 传递 NavController 以便详情页可以返回或导航到编辑
                     )
                 } else {

@@ -36,10 +36,6 @@ class CustomerViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(CustomerListUiState())
     val uiState: StateFlow<CustomerListUiState> = _uiState.asStateFlow()
 
-    // --- 新增：用于管理当前正在编辑的客户对象 ---
-    private val _editingCustomer = MutableStateFlow<Customer?>(null) // 初始为 null，表示没有客户在编辑
-    val editingCustomer: StateFlow<Customer?> = _editingCustomer.asStateFlow()
-
     init {
         Log.d("CustomerViewModel", "ViewModel initialized")
         // 在 init 中加载客户时，也需要 storeId
@@ -131,38 +127,6 @@ class CustomerViewModel @Inject constructor(
         }
     }
 
-    // 更新客户时，Customer 对象应已包含正确的 storeId 和 id
-    fun updateCustomer(customerToUpdate: Customer) {
-        Log.d("CustomerViewModel", "Updating customer: ${customerToUpdate.name} for store: ${customerToUpdate.storeId}")
-        viewModelScope.launch {
-            // 提前检查电话号码唯一性 (如果电话有变动且非空)
-            if (!customerToUpdate.phone.isNullOrBlank()) {
-                val existingCustomerByPhone = customerRepository.getCustomerByPhoneAndStoreId(customerToUpdate.phone, customerToUpdate.storeId)
-                // 如果找到的客户不是当前正在编辑的这个客户，说明电话号码冲突
-                if (existingCustomerByPhone != null && existingCustomerByPhone.id != customerToUpdate.id) {
-                    _uiState.update { it.copy(errorMessage = "电话号码 '${customerToUpdate.phone}' 在本店已被其他客户使用。") }
-                    return@launch
-                }
-            }
-
-            customerRepository.updateCustomer(customerToUpdate)
-                .onSuccess { updatedRows ->
-                    if (updatedRows > 0) {
-                        Log.d("CustomerViewModel", "Customer updated successfully. Reloading list for store ${customerToUpdate.storeId}")
-                        loadCustomers(customerToUpdate.storeId)
-                        doneEditingCustomer()
-                    } else {
-                        Log.w("CustomerViewModel", "Update customer returned 0 rows affected.")
-                        _uiState.update { it.copy(errorMessage = "更新客户失败，未找到记录或数据无变化。") }
-                    }
-                }
-                .onFailure { e ->
-                    Log.e("CustomerViewModel", "Error updating customer", e)
-                    val errorMsg = if (e is SQLiteConstraintException) "更新客户失败：电话号码可能已在本店注册。" else "更新客户失败: ${e.localizedMessage}"
-                    _uiState.update { it.copy(errorMessage = errorMsg) }
-                }
-        }
-    }
 
 
 
@@ -201,40 +165,4 @@ class CustomerViewModel @Inject constructor(
     fun errorShown() {
         _uiState.update { it.copy(errorMessage = null) }
     }
-
-    // --- 新增：用于编辑客户的方法 ---
-
-    /**
-     * 当用户选择编辑一个客户时调用。
-     * 会从数据库加载该客户的完整信息并更新 _editingCustomer StateFlow。
-     */
-    fun startEditingCustomer(customerId: Long) {
-        Log.d("CustomerViewModel", "Starting to edit customer with ID: $customerId")
-        viewModelScope.launch {
-            val storeId = getCurrentStoreId()
-            if (storeId == null) {
-                _uiState.update { it.copy(errorMessage = "无法获取当前店铺信息，无法编辑客户。") }
-                return@launch
-            }
-            try {
-                val customer = customerRepository.getCustomerByIdAndStoreId(customerId, storeId) // 使用带 storeId 的查询
-                _editingCustomer.value = customer
-                if (customer == null) {
-                    Log.w("CustomerViewModel", "Customer with ID $customerId not found in store $storeId for editing.")
-                    _uiState.update { it.copy(errorMessage = "无法找到要编辑的客户信息。") }
-                }
-            } catch (e: Exception) { /* ... */ }
-        }
-    }
-
-
-    /**
-     * 当编辑对话框关闭（无论是保存还是取消）时调用，用于重置编辑状态。
-     */
-    fun doneEditingCustomer() {
-        Log.d("CustomerViewModel", "Done editing customer.")
-        _editingCustomer.value = null
-    }
-
-
 }

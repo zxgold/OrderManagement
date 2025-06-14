@@ -1,5 +1,7 @@
 package com.example.manager.viewmodel
 
+import android.database.sqlite.SQLiteConstraintException
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -64,4 +66,40 @@ class CustomerDetailViewModel @Inject constructor(
     fun errorShown() {
         _uiState.update { it.copy(errorMessage = null) }
     }
+
+    // --- 新增：用于处理客户更新的方法 ---
+    // 这个方法将被 EditCustomerDialog 或 EditCustomerScreen 调用
+    suspend fun saveUpdatedCustomer(customerToUpdate: Customer): Result<Boolean> {
+        _uiState.update { it.copy(isLoading = true) } // 可以用一个不同的加载状态，比如 isSaving
+        val currentStoreId = sessionManager.userSessionFlow.firstOrNull()?.storeId
+        if (currentStoreId == null || customerToUpdate.storeId != currentStoreId) {
+            _uiState.update { it.copy(isLoading = false, errorMessage = "店铺信息不匹配，无法更新") }
+            return Result.failure(IllegalStateException("Store ID mismatch or missing"))
+        }
+
+        // 电话号码唯一性检查 (如果电话有变动)
+        if (!customerToUpdate.phone.isBlank()) { // 假设 phone 是 String (非空)
+            val existingCustomerByPhone = customerRepository.getCustomerByPhoneAndStoreId(customerToUpdate.phone, currentStoreId)
+            if (existingCustomerByPhone != null && existingCustomerByPhone.id != customerToUpdate.id) {
+                _uiState.update { it.copy(isLoading = false, errorMessage = "电话号码 '${customerToUpdate.phone}' 在本店已被其他客户使用。") }
+                return Result.failure(IllegalArgumentException("Phone number already exists for another customer in this store."))
+            }
+        }
+
+        val result = customerRepository.updateCustomer(customerToUpdate.copy(updatedAt = System.currentTimeMillis()))
+        result.onSuccess { updatedRows ->
+            if (updatedRows > 0) {
+                Log.d("CustomerDetailVM", "Customer updated successfully.")
+                loadCustomerDetails() // 更新成功后重新加载详情以显示最新数据
+                _uiState.update { it.copy(isLoading = false) } // 清除加载状态
+            } else {
+                _uiState.update { it.copy(isLoading = false, errorMessage = "更新客户失败，未影响任何行。") }
+            }
+        }.onFailure { e ->
+            val errorMsg = if (e is SQLiteConstraintException) "更新客户失败：数据冲突（如电话重复）。" else "更新客户失败: ${e.localizedMessage}"
+            _uiState.update { it.copy(isLoading = false, errorMessage = errorMsg) }
+        }
+        return result.map { it > 0 } // 返回操作是否成功 (影响行数 > 0)
+    }
 }
+

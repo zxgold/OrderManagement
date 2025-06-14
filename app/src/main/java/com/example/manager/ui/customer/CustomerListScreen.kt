@@ -56,7 +56,6 @@ fun CustomerListScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var showAddDialog by remember { mutableStateOf(false) }
     var customerToDelete by remember { mutableStateOf<Customer?>(null) }
-    val editingCustomer by viewModel.editingCustomer.collectAsStateWithLifecycle() // 观察要编辑的客户
 
     LaunchedEffect(uiState.errorMessage) {
         uiState.errorMessage?.let { message ->
@@ -187,16 +186,6 @@ fun CustomerListScreen(
         )
     }
 
-    // 编辑客户对话框
-    editingCustomer?.let { customerToEdit ->
-        EditCustomerDialog(
-            customer = customerToEdit,
-            onDismiss = { viewModel.doneEditingCustomer() },
-            onConfirm = { updatedCustomer ->
-                viewModel.updateCustomer(updatedCustomer)
-            }
-        )
-    }
 }
 
 @Composable
@@ -388,7 +377,7 @@ fun EditCustomerDialog(
                     if (name.isNotBlank()) {
                         val updatedCustomer = customer.copy(
                             name = name,
-                            phone = phone.ifBlank { null },
+                            phone = phone,
                             address = address.ifBlank { null },
                             remark = remark.ifBlank { null },
                             updatedAt = System.currentTimeMillis()
