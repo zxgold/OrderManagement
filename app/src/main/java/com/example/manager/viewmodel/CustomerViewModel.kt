@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.manager.data.model.entity.Customer
 import com.example.manager.data.preferences.SessionManager
 import com.example.manager.data.repository.CustomerRepository // 导入 Repository 接口
+import com.example.manager.data.repository.OrderRepository
+import com.example.manager.data.repository.ProductRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,7 +31,9 @@ data class CustomerListUiState(
 @HiltViewModel
 class CustomerViewModel @Inject constructor(
     private val customerRepository: CustomerRepository,
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    private val orderRepository: OrderRepository,
+    private val productRepository: ProductRepository
 ) : ViewModel() {
 
     // --- 用于客户列表和搜索等主要 UI 状态 ---
@@ -53,7 +57,7 @@ class CustomerViewModel @Inject constructor(
         return currentSession?.storeId
     }
 
-    // 新的加载客户方法，它会先获取 storeId
+    // 旧的加载客户方法，它会先获取 storeId
     private suspend fun loadCustomersBasedOnSession() {
         val storeId = getCurrentStoreId()
         if (storeId == null) {
@@ -81,6 +85,8 @@ class CustomerViewModel @Inject constructor(
             }
         }
     }
+
+
 
 
     fun onSearchQueryChanged(query: String) {

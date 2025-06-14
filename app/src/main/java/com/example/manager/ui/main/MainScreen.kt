@@ -22,6 +22,9 @@ import com.example.manager.ui.navigation.BottomNavItem // 导入导航项定义
 import com.example.manager.ui.work.WorkScreen
 import com.example.manager.viewmodel.AuthViewModel
 import com.example.manager.ui.customer.CustomerDetailScreen
+import com.example.manager.ui.order.OrderDetailScreen
+import com.example.manager.ui.order.OrderListScreen
+import com.example.manager.ui.order.AddEditOrderScreen
 
 // import com.example.manager.ui.work.WorkScreen // 后续创建
 // import com.example.manager.ui.me.MeScreen // 后续创建
@@ -141,6 +144,45 @@ fun MainScreen(
                     }
                 }
             }
+
+            // 导航至订单列表
+            composable(AppDestinations.ORDER_LIST_ROUTE) {
+                OrderListScreen(navController = bottomSheetNavController) // 传递 NavController
+            }
+
+            // 导航至订单详情页
+            composable(
+                route = AppDestinations.ORDER_DETAIL_ROUTE_TEMPLATE, // "order_detail_screen/{orderId}"
+                arguments = listOf(navArgument("orderId") { type = NavType.LongType })
+            ) { backStackEntry ->
+                val orderId = backStackEntry.arguments?.getLong("orderId")
+                if (orderId != null && orderId != -1L) {
+                    OrderDetailScreen(
+                        orderId = orderId,
+                        navController = bottomSheetNavController // 传递 bottomSheetNavController
+                    )
+                } else {
+                    Text("错误：无效的订单ID")
+                    // navController.popBackStack() // 或者导航回列表
+                }
+            }
+
+            // 订单编辑页
+            composable(
+                route = AppDestinations.ADD_EDIT_ORDER_ROUTE_TEMPLATE,
+                arguments = listOf(navArgument("orderId") {
+                    type = NavType.StringType // 可选参数最好用 String 类型，再转换为 Long
+                    nullable = true
+                    defaultValue = null
+                })
+            ) { backStackEntry ->
+                val orderIdString = backStackEntry.arguments?.getString("orderId")
+                val orderId = orderIdString?.toLongOrNull() // 如果是新增，orderId 会是 null
+                AddEditOrderScreen(orderId = orderId, navController = bottomSheetNavController)
+            }
+// ...
+
+
 
 
         }

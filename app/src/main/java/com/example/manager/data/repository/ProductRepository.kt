@@ -11,4 +11,5 @@ interface ProductRepository {
     suspend fun getAllActiveProductsByStoreId(storeId: Long): List<Product>
     suspend fun searchActiveProductsByStoreId(query: String, storeId: Long): List<Product>
     suspend fun getAllCategoriesByStoreId(storeId: Long): List<String>
+    suspend fun getProductByNameAndModel(storeId: Long, name: String, model: String?): Product?
 }

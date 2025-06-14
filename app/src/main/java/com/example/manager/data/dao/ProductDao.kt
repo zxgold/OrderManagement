@@ -31,4 +31,11 @@ interface ProductDao {
     // 获取特定店铺的所有产品种类
     @Query("SELECT DISTINCT category FROM products WHERE store_id = :storeId AND category IS NOT NULL AND category != '' ORDER BY category ASC")
     suspend fun getAllCategoriesByStoreId(storeId: Long): List<String>
+
+    @Query("""
+        SELECT * FROM products 
+        WHERE store_id = :storeId AND name = :name AND IFNULL(model, '') = IFNULL(:model, '') 
+        LIMIT 1
+    """)
+    suspend fun getProductByNameAndModel(storeId: Long, name: String, model: String?): Product?
 }
