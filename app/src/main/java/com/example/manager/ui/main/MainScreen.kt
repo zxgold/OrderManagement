@@ -6,12 +6,15 @@ import android.util.Log
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.*
+import androidx.navigation.navArgument
 import com.example.manager.ui.customer.CustomerListScreen // 我们已有的客户列表
 import com.example.manager.ui.me.MeScreen
 import com.example.manager.ui.navigation.AppDestinations
@@ -113,8 +116,33 @@ fun MainScreen(
             }
 
             composable(AppDestinations.CUSTOMER_LIST_ROUTE) {
-                CustomerListScreen(authViewModel = authViewModel)
+                CustomerListScreen(authViewModel = authViewModel, navController = bottomSheetNavController)
+
             }
+
+            // --- 新增：客户详情页的 composable ---
+            // 与上面CustomerListScreen的区别在于这个可以点击进入单个客户的详情页
+            composable(
+                route = AppDestinations.CUSTOMER_DETAIL_ROUTE_TEMPLATE,
+                arguments = listOf(navArgument("customerId") { type = NavType.LongType }) // 定义参数类型
+            ) { backStackEntry ->
+                // 从 backStackEntry 中获取参数
+                val customerId = backStackEntry.arguments?.getLong("customerId")
+                if (customerId != null && customerId != -1L) { // 确保 customerId 有效
+                    CustomerDetailScreen(
+                        customerId = customerId,
+                        navController = bottomSheetNavController // 传递 NavController 以便详情页可以返回或导航到编辑
+                    )
+                } else {
+                    // 处理 customerId 无效的情况，例如显示错误或导航回列表
+                    Text("错误：无效的客户ID")
+                    LaunchedEffect(Unit) { // 避免在重组时重复导航
+                        // navController.popBackStack() // 或者导航到一个错误提示页
+                    }
+                }
+            }
+
+
         }
     }
 }

@@ -28,12 +28,15 @@ import com.example.manager.viewmodel.AuthViewModel // 导入 AuthViewModel
 import com.example.manager.viewmodel.CustomerViewModel
 import androidx.compose.material3.HorizontalDivider // 你使用的是 HorizontalDivider
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.navigation.NavController
+import com.example.manager.ui.navigation.AppDestinations
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomerListScreen(
     viewModel: CustomerViewModel = hiltViewModel(),
-    authViewModel: AuthViewModel // <-- **接收 AuthViewModel 参数**
+    authViewModel: AuthViewModel, // <-- **接收 AuthViewModel 参数**
+    navController: NavController
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     // 获取当前会话状态，提供一个非 null 的初始值以避免 LaunchedEffect 首次运行问题
@@ -132,7 +135,18 @@ fun CustomerListScreen(
                         ) { customer ->
                             CustomerItem(
                                 customer = customer,
-                                onItemClick = { viewModel.startEditingCustomer(it.id) }, // <-- 触发编辑
+                                onItemClick = { selectedCustomer ->
+                                    Log.d(
+                                        "CustomerListScreen",
+                                        "Navigating to detail for customer ID: ${selectedCustomer.id}"
+                                    )
+                                    // 使用 AppDestinations 构建带参数的路由
+                                    navController.navigate(
+                                        AppDestinations.customerDetailRoute(
+                                            selectedCustomer.id
+                                        )
+                                    )
+                                },
                                 onDeleteClick = { customerToDelete = it }
                             )
                             HorizontalDivider() // 你使用的是 HorizontalDivider
