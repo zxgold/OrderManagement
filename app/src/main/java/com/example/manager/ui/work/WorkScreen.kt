@@ -18,9 +18,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.manager.ui.components.DashboardItem // 导入 DashboardItem
-import com.example.manager.ui.navigation.AppScreenRoutes
+import com.example.manager.ui.navigation.AppDestinations.CUSTOMER_LIST_ROUTE
 
-// import com.example.manager.ui.navigation.AppScreenRoutes // 暂时不需要，因为我们先不实现导航
 
 data class DashboardActionItem(
     val label: String,
@@ -72,7 +71,7 @@ fun WorkScreen(
             onItemClick = { itemTag ->
                 Log.d("WorkScreen", "客户管理项点击: $itemTag")
                 if (itemTag == "customers") {
-                    bottomNavController.navigate(AppScreenRoutes.CUSTOMER_LIST_ROUTE)
+                    bottomNavController.navigate(CUSTOMER_LIST_ROUTE)
                 }
                 // TODO: 处理其他导航
             }

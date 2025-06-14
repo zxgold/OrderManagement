@@ -25,14 +25,6 @@ import com.example.manager.ui.main.MainScreen
 import com.example.manager.viewmodel.AuthViewModel
 import com.example.manager.viewmodel.NavigationEvent // 确保导入这个
 
-// 定义屏幕路由 (可以放在单独的文件 AppDestinations.kt 中)
-object AppScreenRoutes { // 改个名字以区分之前的 AppDestinations
-    const val LOADING_SCREEN_ROUTE = "loading_screen" // 新增加载屏幕路由
-    const val LOGIN_ROUTE = "login"
-    const val REGISTRATION_ROUTE = "registration"
-    const val MAIN_APP_ROUTE = "main_app"         // <-- 新增：主应用框架路由
-    const val CUSTOMER_LIST_ROUTE = "customer_list" // 假设这是主应用入口
-}
 
 
 
@@ -53,8 +45,8 @@ fun AppNavigation(
 
         when (event) {
             is NavigationEvent.GoToRegistration -> {
-                if (currentRoute != AppScreenRoutes.REGISTRATION_ROUTE) {
-                    navController.navigate(AppScreenRoutes.REGISTRATION_ROUTE) {
+                if (currentRoute != AppDestinations.REGISTRATION_ROUTE) {
+                    navController.navigate(AppDestinations.REGISTRATION_ROUTE) {
                         popUpTo(0) { inclusive = true } // 清空整个回退栈
                         launchSingleTop = true
                     }
@@ -62,9 +54,9 @@ fun AppNavigation(
                 }
             }
             is NavigationEvent.GoToLogin -> {
-                if (currentRoute != AppScreenRoutes.LOGIN_ROUTE) {
+                if (currentRoute != AppDestinations.LOGIN_ROUTE) {
                     Log.i("AppNavigation", "GoToLogin event received. Current route: $currentRoute. Navigating to Login.")
-                    navController.navigate(AppScreenRoutes.LOGIN_ROUTE) {
+                    navController.navigate(AppDestinations.LOGIN_ROUTE) {
                         popUpTo(0) { inclusive = true } // 清空整个回退栈
                         launchSingleTop = true
                     }
@@ -79,8 +71,8 @@ fun AppNavigation(
                 }
             }
             is NavigationEvent.GoToMainApp -> {
-                if (currentRoute != AppScreenRoutes.MAIN_APP_ROUTE) {
-                    navController.navigate(AppScreenRoutes.MAIN_APP_ROUTE) {
+                if (currentRoute != AppDestinations.MAIN_APP_ROUTE) {
+                    navController.navigate(AppDestinations.MAIN_APP_ROUTE) {
                         popUpTo(0) { inclusive = true }
                         launchSingleTop = true
                     }
@@ -101,9 +93,9 @@ fun AppNavigation(
 
     NavHost(
         navController = navController,
-        startDestination = AppScreenRoutes.LOADING_SCREEN_ROUTE // 始终从加载屏幕开始
+        startDestination = AppDestinations.LOADING_SCREEN_ROUTE // 始终从加载屏幕开始
     ) {
-        composable(AppScreenRoutes.LOADING_SCREEN_ROUTE) {
+        composable(AppDestinations.LOADING_SCREEN_ROUTE) {
             // 一个简单的加载屏幕
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
@@ -114,7 +106,7 @@ fun AppNavigation(
             // 上面的 LaunchedEffect 会捕获这个事件并执行导航。
         }
 
-        composable(AppScreenRoutes.REGISTRATION_ROUTE) {
+        composable(AppDestinations.REGISTRATION_ROUTE) {
             RegistrationScreen(
                 viewModel = authViewModel, // 传递 AuthViewModel
                 onNavigateToMainApp = {
@@ -129,7 +121,7 @@ fun AppNavigation(
             )
         }
 
-        composable(AppScreenRoutes.LOGIN_ROUTE) {
+        composable(AppDestinations.LOGIN_ROUTE) {
             LoginScreen(
                 viewModel = authViewModel, // ViewModel 从 AppNavigation 传递，保证是同一个实例
                 onNavigateToMainApp = {
@@ -139,8 +131,8 @@ fun AppNavigation(
                 onNavigateToRegistration = {
                     Log.d("AppNav/LoginScreen", "onNavigateToRegistration requested, navigating to REGISTRATION_ROUTE") // 已更新为 REGISTRATION_ROUTE
                     // 确保导航到正确的注册路由
-                    if (navController.currentDestination?.route != AppScreenRoutes.REGISTRATION_ROUTE) {
-                        navController.navigate(AppScreenRoutes.REGISTRATION_ROUTE) {
+                    if (navController.currentDestination?.route != AppDestinations.REGISTRATION_ROUTE) {
+                        navController.navigate(AppDestinations.REGISTRATION_ROUTE) {
                             launchSingleTop = true
                         }
                     }
@@ -148,7 +140,7 @@ fun AppNavigation(
             )
         }
 
-        composable(AppScreenRoutes.MAIN_APP_ROUTE) { // 新增 MainScreen 的路由
+        composable(AppDestinations.MAIN_APP_ROUTE) { // 新增 MainScreen 的路由
             MainScreen(mainNavController = navController, authViewModel = authViewModel) // 传递上层 navController
         }
 

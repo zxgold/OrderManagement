@@ -2,6 +2,7 @@ package com.example.manager.ui.main
 
 
 import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -13,6 +14,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.*
 import com.example.manager.ui.customer.CustomerListScreen // 我们已有的客户列表
 import com.example.manager.ui.me.MeScreen
+import com.example.manager.ui.navigation.AppDestinations
 import com.example.manager.ui.navigation.BottomNavItem // 导入导航项定义
 import com.example.manager.ui.work.WorkScreen
 import com.example.manager.viewmodel.AuthViewModel
@@ -40,29 +42,52 @@ fun MainScreen(
 
     Scaffold(
         bottomBar = {
-            NavigationBar { // Material 3 的底部导航栏
+            NavigationBar {
                 val navBackStackEntry by bottomSheetNavController.currentBackStackEntryAsState()
                 val currentDestination = navBackStackEntry?.destination
 
-                bottomNavItems.forEach { screen ->
+                bottomNavItems.forEach { screen -> // screen 是 BottomNavItem.Work 或 BottomNavItem.Me
+                    // screen.route 是底部标签的根路由，如 "work_tab_root"
+
+                    // isSelected 的计算保持不变，用于视觉高亮
+                    val isSelected = currentDestination?.hierarchy?.any { navDest ->
+                        navDest.route == screen.route
+                    } == true
+
+                    Log.d("MainScreenSelected", "Tab: ${screen.label}, screen.route: ${screen.route}, currentDest.route: ${currentDestination?.route}, isSelected: $isSelected")
+
+
+
                     NavigationBarItem(
                         icon = { Icon(screen.icon, contentDescription = screen.label) },
                         label = { Text(screen.label) },
-                        selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
+                        selected = isSelected, // <-- **确保这里使用的是正确的 isSelected 计算结果**
                         onClick = {
-                            bottomSheetNavController.navigate(screen.route) {
-                                // Pop up to the start destination of the graph to
-                                // avoid building up a large stack of destinations
-                                // on the back stack as users select items
+                            val targetRootRoute = screen.route // 被点击的底部导航项的根路由
+
+                            Log.d("MainScreenOnClick", "--- Clicked ${screen.label} ---")
+                            Log.d("MainScreenOnClick", "Target Root: $targetRootRoute, Current Actual Route: ${currentDestination?.route}")
+
+                            // **核心简化逻辑：**
+                            // 无论当前是否已选中，只要点击，就导航到该标签页的根路由，
+                            // 并清空该标签页之前的回退栈，同时确保根路由是新的栈顶。
+                            bottomSheetNavController.navigate(targetRootRoute) {
+                                // 弹出到导航图的起始目的地，并保存其状态
                                 popUpTo(bottomSheetNavController.graph.findStartDestination().id) {
-                                    saveState = true
+                                    saveState = true // 保存根目的地的状态，以便在不同标签页间切换时恢复
                                 }
-                                // Avoid multiple copies of the same destination when
-                                // reselecting the same item
+                                // 确保目标路由在回退栈中是唯一的实例
                                 launchSingleTop = true
-                                // Restore state when reselecting a previously selected item
-                                restoreState = true
+                                // 当重新选择已选中的项目时，恢复其状态
+                                // 或者，如果你希望每次点击都重新加载根屏幕，可以设为 false
+                                restoreState = true // 如果你希望返回时看到 WorkScreen 的之前状态（比如滚动位置）
+                                // 如果你希望每次都“全新”加载 WorkScreen，可以设为 false
+                                // 或者，如果想确保总是回到“干净”的WorkScreen，可以这样做：
+                                // popUpTo(targetRootRoute) { inclusive = true } // 弹出到并包括目标根，然后重新导航
+                                // launchSingleTop = true
                             }
+                            Log.i("MainScreenOnClick", "Action: Navigated to tab root: $targetRootRoute")
+
                         }
                     )
                 }
@@ -77,7 +102,7 @@ fun MainScreen(
         ) {
             composable(BottomNavItem.Work.route) {
                 WorkScreen(bottomNavController = bottomSheetNavController) // 旧的占位符或多入口版本
-                // CustomerListScreen(authViewModel = authViewModel) // **直接将客户列表作为“工作”页的初始内容**
+
             }
             composable(BottomNavItem.Me.route) {
                 MeScreen(
@@ -86,10 +111,8 @@ fun MainScreen(
                 )
                 // MeScreen(mainAppNavController = mainNavController) // MeScreen 暂时还是占位符或骨架
             }
-            // 你可以将 CustomerListScreen 作为一个独立的路由目标，从 WorkScreen 导航过去
-            // 或者将 CustomerListScreen 的内容直接嵌入 WorkScreen
-            // 为简单起见，我们可以先让 WorkScreen 直接显示 CustomerListScreen
-            composable("customer_list_for_work") { // 举例，如果 WorkScreen 导航到它
+
+            composable(AppDestinations.CUSTOMER_LIST_ROUTE) {
                 CustomerListScreen(authViewModel = authViewModel)
             }
         }
