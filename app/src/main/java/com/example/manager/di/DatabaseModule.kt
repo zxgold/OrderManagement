@@ -17,6 +17,11 @@ object DatabaseModule { // 为什么这样定义？
 
     // --- 提供AppDatabase实例---
     @Provides
+    @Singleton
+    fun provideStoreDao(database: AppDatabase): StoreDao { // <-- 添加提供 StoreDao 的方法
+        return database.storeDao()
+    }
+    @Provides
     @Singleton // 保证AppDatabase在整个应用中是单例
     fun provideAppDatabase(
         @ApplicationContext context: Context //Hilt自动提供
@@ -26,6 +31,7 @@ object DatabaseModule { // 为什么这样定义？
             AppDatabase::class.java,
             "order_manager_db" // 数据库文件名，保持一致
         )
+            .fallbackToDestructiveMigration() // <-- 临时方案，开发阶段用，发布前必须换成 Migration
             .build()
     }
 

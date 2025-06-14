@@ -12,11 +12,12 @@ import com.example.manager.data.model.typeconverter.Converters // 导入 Convert
 // 如果你之前的版本是 1，那么现在至少应该是 2。
 // 由于我们做了大量结构改动 (V3 设计)，可以跳跃式增加，比如直接用 3，
 // 关键是 **必须比之前的版本号大**。
-private const val DATABASE_VERSION = 3 // <--- !! 修改为你确定的新版本号 !!
+private const val DATABASE_VERSION = 6 // <--- !! 修改为你确定的新版本号 !!
 
 @Database(
     entities = [
         // --- 列出 V3 版本包含的所有 Entity 类 ---
+        Store::class,
         Staff::class,
         Customer::class,
         Product::class,
@@ -35,6 +36,7 @@ private const val DATABASE_VERSION = 3 // <--- !! 修改为你确定的新版本
 abstract class AppDatabase : RoomDatabase() {
 
     // --- 提供获取每个 DAO 实例的抽象方法 ---
+    abstract fun storeDao(): StoreDao
     abstract fun staffDao(): StaffDao
     abstract fun customerDao(): CustomerDao
     abstract fun productDao(): ProductDao

@@ -12,16 +12,20 @@ import com.example.manager.data.model.entity.Customer
  * 所有涉及数据库操作的方法都标记为suspend（为什么？）
  */
 interface CustomerRepository {
-    suspend fun insertOrUpdateCustomer(customer: Customer): Long
+    // 添加客户时，Customer 对象应已包含正确的 storeId
+    suspend fun insertCustomer(customer: Customer): Result<Long> // 返回 Result 以便处理唯一性冲突
+
+    suspend fun updateCustomer(customer: Customer): Result<Int> // 返回 Result
 
     suspend fun deleteCustomer(customer: Customer): Int
 
-    suspend fun getCustomerById(id: Long): Customer?
+    suspend fun deleteCustomerByIdAndStoreId(customerId: Long, storeId: Long): Int
 
-    suspend fun searchCustomers(query: String): List<Customer>
+    suspend fun getCustomerByIdAndStoreId(id: Long, storeId: Long): Customer?
 
-    suspend fun getAllCustomers(): List<Customer>
+    suspend fun getCustomerByPhoneAndStoreId(phone: String, storeId: Long): Customer?
 
-    // 未来可能添加：
-    // fun getAllCustomersFlow(): Flow<List<Customer>> // 使用 Flow 实现观察
+    suspend fun getAllCustomersByStoreId(storeId: Long): List<Customer>
+
+    suspend fun searchCustomers(query: String, storeId: Long): List<Customer>
 }
