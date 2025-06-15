@@ -5,6 +5,7 @@ import com.example.manager.data.dao.CustomerDao // 导入 CustomerDao
 import com.example.manager.data.model.entity.Customer
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.Flow // 导入 Flow
 
 /**
  * CustomerRepository 的具体实现类
@@ -72,5 +73,16 @@ class CustomerRepositoryImpl @Inject constructor(
 
     override suspend fun searchCustomers(query: String, storeId: Long): List<Customer> {
         return customerDao.searchCustomersByStoreId(query, storeId)
+    }
+
+    // --- 实现新增的返回 Flow 的方法 ---
+    override fun getAllCustomersByStoreIdFlow(storeId: Long): Flow<List<Customer>> {
+        // 直接返回 DAO 的 Flow
+        return customerDao.getAllCustomersByStoreIdFlow(storeId)
+    }
+
+    override fun searchCustomersByStoreIdFlow(query: String, storeId: Long): Flow<List<Customer>> {
+        // 直接返回 DAO 的 Flow
+        return customerDao.searchCustomersByStoreIdFlow(query, storeId)
     }
 }
