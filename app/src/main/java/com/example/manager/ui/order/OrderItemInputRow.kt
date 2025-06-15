@@ -13,6 +13,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.manager.viewmodel.TempOrderItem
 
+/*
+ * 这个composable用于在AddEditOrderScreen中显示已经添加的临时订单项，并允许实时修改和删除
+ */
 @Composable
 fun OrderItemInputRow(
     item: TempOrderItem,

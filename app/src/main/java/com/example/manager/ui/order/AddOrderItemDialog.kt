@@ -52,7 +52,8 @@ fun AddOrderItemDialog(
                     )
                     ExposedDropdownMenu(
                         expanded = expanded,
-                        onDismissRequest = { expanded = false }
+                        onDismissRequest = { expanded = false },
+                        modifier = Modifier.exposedDropdownSize(true) // 适配下拉菜单大小
                     ) {
                         availableProducts.forEach { product ->
                             DropdownMenuItem(
