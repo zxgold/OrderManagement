@@ -27,7 +27,9 @@ private const val DATABASE_VERSION = 11 // <--- !! 修改为你确定的新版�
         Payment::class,
         FollowUp::class,
         LedgerEntry::class,
-        ActionLog::class
+        ActionLog::class,
+        OrderItemStatusLog::class
+
     ],
     version = DATABASE_VERSION, // <-- 使用上面定义的常量
     exportSchema = true // <-- 推荐设置为 true，用于导出 Schema JSON 文件
@@ -48,6 +50,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun followUpDao(): FollowUpDao
     abstract fun ledgerEntryDao(): LedgerEntryDao
     abstract fun actionLogDao(): ActionLogDao
+    abstract fun orderItemStatusLogDao(): OrderItemStatusLogDao
 
 
     // --- Companion Object (通常用于提供单例实例，结合 Hilt 会更简单) ---

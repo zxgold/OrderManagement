@@ -98,6 +98,23 @@ object DatabaseModule { // 为什么这样定义？
     fun provideSupplierDao(database: AppDatabase): SupplierDao { // <-- 添加
         return database.supplierDao()
     }
+
+    // TODO: 未来为 InventoryItemDao 添加 Provider
+    // @Provides
+    // @Singleton
+    // fun provideInventoryItemDao(database: AppDatabase): InventoryItemDao {
+    //     return database.inventoryItemDao()
+    // }
+
+    @Provides
+    @Singleton
+    fun provideOrderItemStatusLogDao(database: AppDatabase): OrderItemStatusLogDao { // <-- **为 OrderItemStatusLogDao 添加 Provider**
+        return database.orderItemStatusLogDao()
+    }
+
+
+
+
 }
 
 
