@@ -36,4 +36,6 @@ interface OrderRepository {
     fun getLogsForOrderItemFlow(orderItemId: Long): Flow<List<OrderItemStatusLog>> // <-- **添加此方法**
 
     suspend fun getOrderItemById(orderItemId: Long): OrderItem? // <-- 添加到 Repository
+
+    suspend fun checkAndCompleteOrder(orderId: Long, storeId: Long): Boolean // 返回订单是否被完成
 }

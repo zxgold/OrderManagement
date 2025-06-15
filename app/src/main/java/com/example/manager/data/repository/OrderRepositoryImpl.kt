@@ -185,5 +185,24 @@ class OrderRepositoryImpl @Inject constructor(
         return orderItemStatusLogDao.getLogsForOrderItemFlow(orderItemId)
     }
 
+    override suspend fun checkAndCompleteOrder(orderId: Long, storeId: Long): Boolean { // <-- 接收 storeId
+        val nonInstalledCount = orderItemDao.countNonInstalledItemsByOrderId(orderId)
+        if (nonInstalledCount == 0) {
+            // 现在我们可以使用带 storeId 的查询方法了
+            val order = orderDao.getOrderByIdAndStoreId(orderId, storeId)
+            if (order != null && order.status != OrderStatus.COMPLETED) {
+                orderDao.updateOrderCompletion(
+                    orderId = orderId,
+                    status = OrderStatus.COMPLETED,
+                    completionDate = System.currentTimeMillis(),
+                    updateTime = System.currentTimeMillis()
+                )
+                Log.i("OrderRepoImpl", "Order ID $orderId has been auto-completed.")
+                return true
+            }
+        }
+        return false
+    }
+
 
 }
