@@ -18,7 +18,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.manager.ui.components.DashboardItem // 导入 DashboardItem
+import com.example.manager.ui.navigation.AppDestinations
 import com.example.manager.ui.navigation.AppDestinations.CUSTOMER_LIST_ROUTE
+import com.example.manager.ui.navigation.AppDestinations.ORDER_LIST_ROUTE
 
 
 data class DashboardActionItem(
@@ -33,9 +35,9 @@ fun WorkScreen(
     bottomNavController: NavController // 从 MainScreen 传递过来的
 ) {
     val customerManagementItems = listOf(
-        DashboardActionItem("客户", Icons.Filled.People, "customers"),
+        DashboardActionItem("客户", Icons.Filled.People, "customer_list_for_work"),
         DashboardActionItem("跟进", Icons.Filled.Schedule, "follow_up"),
-        DashboardActionItem("销售单", Icons.AutoMirrored.Filled.ReceiptLong, "sales_orders"),
+        DashboardActionItem("销售单", Icons.AutoMirrored.Filled.ReceiptLong, "order_list_screen"),
         DashboardActionItem("回款", Icons.Filled.Payment, "payments"),
         DashboardActionItem("工单", Icons.AutoMirrored.Filled.ListAlt, "work_orders")
     )
@@ -70,9 +72,14 @@ fun WorkScreen(
             items = customerManagementItems,
             onItemClick = { itemTag ->
                 Log.d("WorkScreen", "客户管理项点击: $itemTag")
-                if (itemTag == "customers") {
+                if (itemTag == CUSTOMER_LIST_ROUTE) {
                     bottomNavController.navigate(CUSTOMER_LIST_ROUTE)
                 }
+                if (itemTag == ORDER_LIST_ROUTE) {
+                    bottomNavController.navigate(ORDER_LIST_ROUTE)
+                }
+
+
                 // TODO: 处理其他导航
             }
         )

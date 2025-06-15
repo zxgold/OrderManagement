@@ -2,6 +2,7 @@ package com.example.manager.data.repository
 
 // 定义需要暴露给ViewModel的客户相关操作方法
 import com.example.manager.data.model.entity.Customer
+import kotlinx.coroutines.flow.Flow
 
 /**
  * 客户数据的repository接口
@@ -28,4 +29,8 @@ interface CustomerRepository {
     suspend fun getAllCustomersByStoreId(storeId: Long): List<Customer>
 
     suspend fun searchCustomers(query: String, storeId: Long): List<Customer>
+
+    // --- 返回 Flow 的方法 ---
+    fun getAllCustomersByStoreIdFlow(storeId: Long): Flow<List<Customer>>
+    fun searchCustomersByStoreIdFlow(query: String, storeId: Long): Flow<List<Customer>>
 }
