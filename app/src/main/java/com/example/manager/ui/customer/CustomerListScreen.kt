@@ -28,6 +28,7 @@ import com.example.manager.viewmodel.AuthViewModel // 导入 AuthViewModel
 import com.example.manager.viewmodel.CustomerViewModel
 import androidx.compose.material3.HorizontalDivider // 你使用的是 HorizontalDivider
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.navigation.NavController
 import com.example.manager.ui.navigation.AppDestinations
 
@@ -229,10 +230,12 @@ fun AddCustomerDialog(
     onDismiss: () -> Unit,
     onConfirm: (name: String, phone: String, address: String, remark: String) -> Unit // 这里参数目前没有包含备注
 ) {
-    var name by remember { mutableStateOf("") }
-    var phone by remember { mutableStateOf("") }
-    var address by remember { mutableStateOf("") }
-    var remark by remember { mutableStateOf("") } // 添加 remark 状态
+
+    var nameState by remember { mutableStateOf(TextFieldValue("")) }
+    var phoneState by remember { mutableStateOf(TextFieldValue("")) }
+    var addressState by remember { mutableStateOf(TextFieldValue("")) }
+    var remarkState by remember { mutableStateOf(TextFieldValue("")) }
+
     // 如果添加客户也需要备注，这里和 EditCustomerDialog 类似处理
     var nameError by remember { mutableStateOf<String?>(null) }    // 姓名错误信息
     var phoneError by remember { mutableStateOf<String?>(null) } // 新增 phoneError
@@ -244,10 +247,10 @@ fun AddCustomerDialog(
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 // 姓名
                 OutlinedTextField(
-                    value = name,
-                    onValueChange = {
-                        name = it
-                        nameError = if (it.isBlank()) "姓名不能为空" else null // 更新错误信息
+                    value = nameState,
+                    onValueChange = { newValue ->
+                        nameState = newValue
+                        nameError = if (newValue.text.isBlank()) "姓名不能为空" else null // 更新错误信息
                     },
                     label = { Text("客户姓名 *") },
                     isError = nameError != null, // 根据是否有错误信息来判断
@@ -261,10 +264,10 @@ fun AddCustomerDialog(
 
                 // 电话
                 OutlinedTextField(
-                    value = phone,
-                    onValueChange = {
-                        phone = it
-                        phoneError = if (it.isBlank()) "电话不能为空" else null // 更新错误信息
+                    value = phoneState,
+                    onValueChange = { newValue ->
+                        phoneState = newValue
+                        phoneError = if (newValue.text.isBlank()) "电话不能为空" else null // 更新错误信息
                     },
                     label = { Text("联系电话 *") }, // 标记为必填
                     isError = phoneError != null,
@@ -279,8 +282,8 @@ fun AddCustomerDialog(
 
                 // 地址
                 OutlinedTextField(
-                    value = address,
-                    onValueChange = { address = it },
+                    value = addressState,
+                    onValueChange = { addressState = it },
                     label = { Text("地址") },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -288,8 +291,8 @@ fun AddCustomerDialog(
 
                 // 备注
                 OutlinedTextField(
-                    value = remark,
-                    onValueChange = { remark = it },
+                    value = remarkState,
+                    onValueChange = { remarkState = it },
                     label = { Text("备注") },
                     modifier = Modifier.fillMaxWidth(),
                     maxLines = 3
@@ -299,6 +302,10 @@ fun AddCustomerDialog(
         confirmButton = {
             TextButton(
                 onClick = {
+                    val name = nameState.text
+                    val phone = phoneState.text
+                    val address = addressState.text
+                    val  remark = remarkState.text
                     // 在点击确认时，再次设置错误状态（以防用户直接点击确认而不修改）
                     nameError = if (name.isBlank()) "姓名不能为空" else null
                     phoneError = if (phone.isBlank()) "电话不能为空" else null
@@ -324,10 +331,11 @@ fun EditCustomerDialog(
     onDismiss: () -> Unit,
     onConfirm: (Customer) -> Unit
 ) {
-    var name by remember(customer.id) { mutableStateOf(customer.name) }
-    var phone by remember(customer.id) { mutableStateOf(customer.phone ?: "") }
-    var address by remember(customer.id) { mutableStateOf(customer.address ?: "") }
-    var remark by remember(customer.id) { mutableStateOf(customer.remark ?: "") }
+    var nameState by remember { mutableStateOf(TextFieldValue("")) }
+    var phoneState by remember { mutableStateOf(TextFieldValue("")) }
+    var addressState by remember { mutableStateOf(TextFieldValue("")) }
+    var remarkState by remember { mutableStateOf(TextFieldValue("")) }
+
     var nameError by remember(customer.id) { mutableStateOf(false) }
 
     AlertDialog(
@@ -336,8 +344,8 @@ fun EditCustomerDialog(
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it; nameError = it.isBlank() },
+                    value = nameState,
+                    onValueChange = { nameState = it; nameError = it.text.isBlank() },
                     label = { Text("客户姓名 *") },
                     isError = nameError,
                     singleLine = true,
@@ -348,23 +356,23 @@ fun EditCustomerDialog(
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
-                    value = phone,
-                    onValueChange = { phone = it },
+                    value = phoneState,
+                    onValueChange = { phoneState = it },
                     label = { Text("联系电话") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
-                    value = address,
-                    onValueChange = { address = it },
+                    value = addressState,
+                    onValueChange = { addressState = it },
                     label = { Text("地址") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
-                    value = remark,
-                    onValueChange = { remark = it },
+                    value = remarkState,
+                    onValueChange = { remarkState = it },
                     label = { Text("备注") },
                     modifier = Modifier.fillMaxWidth(),
                     maxLines = 3
@@ -374,6 +382,11 @@ fun EditCustomerDialog(
         confirmButton = {
             TextButton(
                 onClick = {
+                    val name = nameState.text
+                    val phone = phoneState.text
+                    val address = addressState.text
+                    val remark = remarkState.text
+
                     if (name.isNotBlank()) {
                         val updatedCustomer = customer.copy(
                             name = name,
