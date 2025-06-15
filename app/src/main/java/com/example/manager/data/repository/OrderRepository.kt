@@ -2,6 +2,7 @@ package com.example.manager.data.repository
 
 import com.example.manager.data.model.entity.Order
 import com.example.manager.data.model.entity.OrderItem
+import com.example.manager.data.model.enums.OrderItemStatus
 import com.example.manager.data.model.enums.OrderStatus
 
 interface OrderRepository {
@@ -22,5 +23,11 @@ interface OrderRepository {
     // OrderItem 相关，通常通过 OrderId 操作，间接实现店铺隔离
     suspend fun getOrderItemsByOrderId(orderId: Long): List<OrderItem>
     suspend fun updateOrderItem(orderItem: OrderItem): Result<Int> // orderItem.orderId -> Order.storeId
-    // ... 其他方法
+
+    suspend fun updateOrderItemStatus(
+        orderItemId: Long,
+        newStatus: OrderItemStatus,
+        staffId: Long,
+        storeId: Long // 用于库存操作
+    ): Result<Boolean>
 }

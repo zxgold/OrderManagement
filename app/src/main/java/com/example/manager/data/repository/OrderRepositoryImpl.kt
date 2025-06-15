@@ -1,11 +1,16 @@
 package com.example.manager.data.repository
 
+import android.util.Log
 import androidx.room.withTransaction
+import com.example.manager.data.dao.InventoryItemDao
 import com.example.manager.data.dao.OrderDao
 import com.example.manager.data.dao.OrderItemDao
+import com.example.manager.data.dao.OrderItemStatusLogDao
 import com.example.manager.data.db.AppDatabase
 import com.example.manager.data.model.entity.Order
 import com.example.manager.data.model.entity.OrderItem
+import com.example.manager.data.model.entity.OrderItemStatusLog
+import com.example.manager.data.model.enums.OrderItemStatus
 import com.example.manager.data.model.enums.OrderStatus
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -14,7 +19,9 @@ import javax.inject.Singleton
 class OrderRepositoryImpl @Inject constructor(
     private val orderDao: OrderDao,
     private val orderItemDao: OrderItemDao,
-    private val appDatabase: AppDatabase
+    private val appDatabase: AppDatabase,
+    private val orderItemStatusLogDao: OrderItemStatusLogDao,
+    private val inventoryItemDao: InventoryItemDao // <-- 注入 InventoryItemDao 用于库存联动
 ) : OrderRepository {
 
     override suspend fun insertOrderWithItems(order: Order, items: List<OrderItem>): Result<Long> {
@@ -95,6 +102,59 @@ class OrderRepositoryImpl @Inject constructor(
         return try {
             Result.success(orderItemDao.updateOrderItem(orderItem))
         } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun updateOrderItemStatus(
+        orderItemId: Long,
+        newStatus: OrderItemStatus,
+        staffId: Long,
+        storeId: Long
+    ): Result<Boolean> {
+        return try {
+            appDatabase.withTransaction {
+                val orderItem = orderItemDao.getOrderItemById(orderItemId)
+                    ?: throw NoSuchElementException("OrderItem not found with ID: $orderItemId")
+
+                val oldStatus = orderItem.status
+
+                // 更新订单项状态
+                orderItemDao.updateOrderItem(orderItem.copy(
+                    status = newStatus,
+                    statusLastUpdateAt = System.currentTimeMillis(),
+                    statusLastUpdateStaffId = staffId
+                ))
+
+                // 插入状态变更日志
+                orderItemStatusLogDao.insertLog(
+                    OrderItemStatusLog(
+                        orderItemId = orderItemId,
+                        status = newStatus,
+                        staffId = staffId
+                    )
+                )
+
+                // --- 库存联动逻辑 ---
+                if (orderItem.productId != null) {
+                    // 1. 入库：从“物流中”或更早的状态变为“已到库”
+                    if (newStatus == OrderItemStatus.IN_STOCK && oldStatus < OrderItemStatus.IN_STOCK) {
+                        inventoryItemDao.increaseStock(storeId, orderItem.productId, orderItem.quantity)
+                    }
+                    // 2. 出库：从“已到库”变为“已安装”
+                    else if (newStatus == OrderItemStatus.INSTALLED && oldStatus == OrderItemStatus.IN_STOCK) {
+                        val success = inventoryItemDao.decreaseStock(storeId, orderItem.productId, orderItem.quantity)
+                        if (!success) {
+                            throw IllegalStateException("库存不足，无法将产品(ID: ${orderItem.productId})状态更新为已安装。")
+                        }
+                    }
+                }
+
+                // TODO: 检查并更新订单主状态的逻辑 (如果需要)
+            }
+            Result.success(true)
+        } catch (e: Exception) {
+            Log.e("OrderRepoImpl", "Failed to update order item status.", e)
             Result.failure(e)
         }
     }
