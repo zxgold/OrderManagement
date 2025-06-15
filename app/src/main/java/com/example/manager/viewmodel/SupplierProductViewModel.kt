@@ -172,4 +172,44 @@ class SupplierProductViewModel @Inject constructor(
     private suspend fun getCurrentStoreId(): Long? {
         return sessionManager.userSessionFlow.firstOrNull()?.storeId
     }
+
+    fun updateProduct(product: Product) {
+        viewModelScope.launch {
+            // 确保 product 的 supplierId 与当前选中的一致
+            if (product.supplierId != _uiState.value.selectedSupplier?.id) {
+                _uiState.update { it.copy(errorMessage = "操作无效：产品不属于当前供应商。") }
+                return@launch
+            }
+            productRepository.updateProduct(product.copy(updatedAt = System.currentTimeMillis()))
+                .onSuccess {
+                    Log.d("SupplierProductVM", "Product updated successfully.")
+                    // 列表会自动刷新
+                }
+                .onFailure { e ->
+                    val errorMsg = if (e is SQLiteConstraintException) "更新失败：产品名称和型号已存在。" else "更新产品失败: ${e.localizedMessage}"
+                    _uiState.update { it.copy(errorMessage = errorMsg) }
+                }
+        }
+    }
+
+    fun deleteProduct(product: Product) {
+        viewModelScope.launch {
+            if (product.supplierId != _uiState.value.selectedSupplier?.id) {
+                _uiState.update { it.copy(errorMessage = "操作无效：产品不属于当前供应商。") }
+                return@launch
+            }
+            productRepository.deleteProduct(product).also { result -> // deleteProduct 返回 Result<Int>
+                result.onSuccess { deletedRows ->
+                    if (deletedRows > 0) {
+                        Log.d("SupplierProductVM", "Product deleted successfully.")
+                    } else {
+                        _uiState.update { it.copy(errorMessage = "删除失败，未找到产品。") }
+                    }
+                }.onFailure { e ->
+                    _uiState.update { it.copy(errorMessage = "删除产品失败: ${e.localizedMessage}") }
+                }
+            }
+        }
+    }
+
 }

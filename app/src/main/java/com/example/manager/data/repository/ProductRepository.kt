@@ -6,6 +6,6 @@ import kotlinx.coroutines.flow.Flow
 interface ProductRepository {
     suspend fun insertProduct(product: Product): Result<Long>
     suspend fun updateProduct(product: Product): Result<Int>
-    suspend fun deleteProduct(product: Product): Int // 或 deleteProduct(productId: Long, storeId: Long)
+    suspend fun deleteProduct(product: Product): Result<Int> // <-- **修改返回类型为 Result<Int>**
     fun getAllActiveProductsBySupplierIdFlow(supplierId: Long): Flow<List<Product>>
 }

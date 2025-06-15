@@ -11,6 +11,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Business // 供应商图标
 import androidx.compose.material.icons.filled.Category // 产品图标
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.GroupAdd
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,6 +26,10 @@ import com.example.manager.data.model.entity.Product
 import com.example.manager.data.model.entity.Supplier
 import com.example.manager.viewmodel.SupplierProductViewModel
 import com.example.manager.ui.supplier.AddSupplierDialog
+import androidx.compose.material.icons.filled.MoreVert // 用于三点菜单图标
+import androidx.compose.material.icons.filled.Edit // 用于编辑图标
+import com.example.manager.ui.supplier.EditProductDialog // 导入新创建的对话框
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,6 +40,8 @@ fun SupplierProductScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showAddSupplierDialog by remember { mutableStateOf(false) }
     var showAddProductDialog by remember { mutableStateOf(false) }
+    var productToEdit by remember { mutableStateOf<Product?>(null) } // <-- 新增：要编辑的产品
+    var productToDelete by remember { mutableStateOf<Product?>(null) } // <-- 新增：要删除的产品
 
     Scaffold(
         topBar = {
@@ -120,7 +127,8 @@ fun SupplierProductScreen(
                             items(uiState.productsOfSelectedSupplier, key = { it.id }) { product ->
                                 ProductItem(
                                     product = product,
-                                    onClick = { /* TODO: 导航到产品详情或编辑 */ }
+                                    onEditClick = { productToEdit = product },
+                                    onDeleteClick = { productToDelete = product }
                                 )
                                 HorizontalDivider()
                             }
@@ -154,6 +162,41 @@ fun SupplierProductScreen(
             }
         )
     }
+
+    // 编辑产品的对话框
+    productToEdit?.let { product ->
+        EditProductDialog(
+            product = product,
+            onDismiss = { productToEdit = null },
+            onConfirm = { updatedProduct ->
+                viewModel.updateProduct(updatedProduct)
+                productToEdit = null // 关闭对话框
+            }
+        )
+    }
+
+    // 新增：删除产品的确认对话框
+    productToDelete?.let { product ->
+        AlertDialog(
+            onDismissRequest = { productToDelete = null },
+            title = { Text("确认删除产品") },
+            text = { Text("确定要删除产品 “${product.name}” 吗？此操作会影响已关联此产品的历史订单（显示为非标品），但不会从历史订单中移除。") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteProduct(product)
+                        productToDelete = null
+                    }
+                ) { Text("确认删除") }
+            },
+            dismissButton = {
+                TextButton(onClick = { productToDelete = null }) { Text("取消") }
+            }
+        )
+    }
+
+
+
 }
 
 // --- 可复用的子组件 ---
@@ -190,13 +233,17 @@ fun SupplierItem(
 @Composable
 fun ProductItem(
     product: Product,
-    onClick: () -> Unit
+    onEditClick: () -> Unit,  // <-- 新增：编辑点击回调
+    onDeleteClick: () -> Unit // <-- 新增：删除点击回调
+    // onClick: () -> Unit // 如果整个条目点击是查看详情，可以保留
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(16.dp),
+            // .clickable(onClick = onClick) // 如果需要整体点击，可以保留
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -211,6 +258,32 @@ fun ProductItem(
             product.model?.let { Text("型号: $it", style = MaterialTheme.typography.bodyMedium) }
             Text("参考价: ¥${String.format("%.2f", product.defaultPrice)}", style = MaterialTheme.typography.bodyMedium)
         }
-        // TODO: 可以添加编辑或删除图标按钮
+        // 三点菜单按钮
+        Box {
+            IconButton(onClick = { showMenu = true }) {
+                Icon(Icons.Filled.MoreVert, contentDescription = "更多操作")
+            }
+            DropdownMenu(
+                expanded = showMenu,
+                onDismissRequest = { showMenu = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("编辑") },
+                    onClick = {
+                        onEditClick()
+                        showMenu = false
+                    },
+                    leadingIcon = { Icon(Icons.Filled.Edit, contentDescription = "编辑") }
+                )
+                DropdownMenuItem(
+                    text = { Text("删除") },
+                    onClick = {
+                        onDeleteClick()
+                        showMenu = false
+                    },
+                    leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = "删除") }
+                )
+            }
+        }
     }
 }

@@ -34,8 +34,13 @@ class ProductRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun deleteProduct(product: Product): Int {
-        return productDao.deleteProduct(product)
+    override suspend fun deleteProduct(product: Product): Result<Int> { // <-- **修改返回类型**
+        return try {
+            val deletedRows = productDao.deleteProduct(product)
+            Result.success(deletedRows) // <-- **将结果包装在 Result.success 中**
+        } catch (e: Exception) {
+            Result.failure(e) // <-- **将异常包装在 Result.failure 中**
+        }
     }
 
     override fun getAllActiveProductsBySupplierIdFlow(supplierId: Long): Flow<List<Product>> {
