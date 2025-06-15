@@ -153,15 +153,34 @@ fun AddEditOrderScreen(
             // Section 3: 金额和备注
             item {
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("金额与备注", style = MaterialTheme.typography.titleMedium)
-                // TODO: 实现折扣、首付款、备注等输入框
-                Text("总金额: ¥${uiState.calculatedTotalAmount} (TODO)")
-                Text("应付金额: ¥${uiState.calculatedFinalAmount} (TODO)")
+                OrderSummarySection(
+                    totalAmount = uiState.calculatedTotalAmount,
+                    discount = uiState.discount,
+                    finalAmount = uiState.calculatedFinalAmount,
+                    downPayment = uiState.downPayment,
+                    onDiscountChange = viewModel::onDiscountChanged,
+                    onDownPaymentChange = viewModel::onDownPaymentChanged,
+                    notes = uiState.notes ?: "",
+                    onNotesChange = viewModel::onOrderNotesChanged
+                )
             }
+
         }
-        // ------------------------
+    }
+
+    // 显示添加产品对话框
+    if (showAddOrderItemDialog) {
+        AddOrderItemDialog(
+            availableProducts = uiState.availableProducts,
+            onDismiss = { showAddOrderItemDialog = false },
+            onConfirm = { product, quantity, price, notes ->
+                viewModel.addTempOrderItem(product, quantity, price, notes)
+                showAddOrderItemDialog = false
+            }
+        )
     }
 }
+
 
 // --- 新增：客户选择器的 Composable ---
 @OptIn(ExperimentalMaterial3Api::class)
