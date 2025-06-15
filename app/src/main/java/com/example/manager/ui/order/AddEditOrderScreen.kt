@@ -23,6 +23,9 @@ import com.example.manager.data.model.entity.Customer
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.ui.text.font.FontWeight
+import com.example.manager.viewmodel.TempOrderItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,6 +39,7 @@ fun AddEditOrderScreen(
     val customerSearchResults by viewModel.customerSearchResults.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val isEditMode = orderId != null && orderId != -1L
+    var showAddOrderItemDialog by remember { mutableStateOf(false) } // 新增状态控制添加产品对话框
 
     // 根据是新增还是编辑模式，在 Composable 首次组合时准备数据
     LaunchedEffect(key1 = orderId) {
@@ -119,8 +123,8 @@ fun AddEditOrderScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("产品列表", style = MaterialTheme.typography.titleMedium)
-                    Button(onClick = { /* TODO: 弹出产品选择器 */ }) {
+                    Text("产品列表 *", style = MaterialTheme.typography.titleMedium)
+                    Button(onClick = { showAddOrderItemDialog = true }) { // 点击显示对话框
                         Icon(Icons.Filled.Add, contentDescription = "添加产品")
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("添加产品")
@@ -129,11 +133,19 @@ fun AddEditOrderScreen(
                 Spacer(modifier = Modifier.height(8.dp))
             }
             if (uiState.tempOrderItems.isEmpty()) {
-                item { Text("请点击右上角添加产品到订单。") }
+                item {
+                    Text(
+                        "请点击“添加产品”按钮将产品加入订单。",
+                        modifier = Modifier.padding(vertical = 16.dp)
+                    )
+                }
             } else {
                 items(uiState.tempOrderItems, key = { it.tempId }) { tempItem ->
-                    // TODO: 实现订单项条目 UI (可编辑)
-                    Text("订单项: ${tempItem.productName} x ${tempItem.quantity} (TODO)")
+                    TempOrderItemView( // 新的 Composable 用于显示和编辑订单项
+                        item = tempItem,
+                        onUpdate = viewModel::updateTempOrderItem,
+                        onRemove = viewModel::removeTempOrderItem
+                    )
                     HorizontalDivider()
                 }
             }
@@ -229,5 +241,69 @@ fun CustomerSelector(
         }
         // TODO: 在这里添加一个“创建新客户”按钮，点击后可以导航到客户创建页面或弹出对话框
         // TextButton(onClick = { /* ... */ }) { Text("+ 创建新客户") }
+    }
+}
+
+// 新增：用于显示和编辑单个临时订单项的 Composable
+@Composable
+fun TempOrderItemView(
+    item: TempOrderItem,
+    onUpdate: (tempId: String, quantity: Int, price: Double, notes: String?) -> Unit,
+    onRemove: (tempId: String) -> Unit
+) {
+    // 我们可以让这个视图更简单，或者也提供一个编辑对话框
+    // 这里先只显示信息，并提供一个删除按钮
+    Row(modifier = Modifier.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(item.productName, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+            Text("数量: ${item.quantity}  |  单价: ¥${item.actualUnitPrice}  |  小计: ¥${item.itemTotalAmount}")
+            item.notes?.let { Text("备注: $it", style = MaterialTheme.typography.bodySmall) }
+        }
+        // TODO: 添加编辑按钮
+        IconButton(onClick = { onRemove(item.tempId) }) {
+            Icon(Icons.Filled.Delete, contentDescription = "移除产品项")
+        }
+    }
+}
+
+// 新增：用于显示订单金额汇总和备注的 Composable
+@Composable
+fun OrderSummarySection(
+    totalAmount: Double,
+    discount: Double,
+    finalAmount: Double,
+    downPayment: Double,
+    onDiscountChange: (Double) -> Unit,
+    onDownPaymentChange: (Double) -> Unit,
+    notes: String,
+    onNotesChange: (String) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("金额与备注", style = MaterialTheme.typography.titleMedium)
+        Text("订单总额: ¥${String.format("%.2f", totalAmount)}", style = MaterialTheme.typography.bodyLarge)
+
+        OutlinedTextField(
+            value = if (discount == 0.0) "" else discount.toString(),
+            onValueChange = { onDiscountChange(it.toDoubleOrNull() ?: 0.0) },
+            label = { Text("优惠金额") },
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal)
+        )
+        Text("应付金额: ¥${String.format("%.2f", finalAmount)}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+
+        OutlinedTextField(
+            value = if (downPayment == 0.0) "" else downPayment.toString(),
+            onValueChange = { onDownPaymentChange(it.toDoubleOrNull() ?: 0.0) },
+            label = { Text("首付款") },
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal)
+        )
+        OutlinedTextField(
+            value = notes,
+            onValueChange = onNotesChange,
+            label = { Text("订单备注") },
+            modifier = Modifier.fillMaxWidth(),
+            maxLines = 4
+        )
     }
 }
