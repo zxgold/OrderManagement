@@ -26,6 +26,8 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.ui.text.font.FontWeight
 import com.example.manager.viewmodel.TempOrderItem
+import com.example.manager.ui.order.AddOrderItemDialog // 我们之前创建的对话框
+import com.example.manager.ui.order.OrderItemInputRow // 新的订单项输入行
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -98,7 +100,8 @@ fun AddEditOrderScreen(
             modifier = Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp) // 给每个区段一些间距
         ) {
             // Section 1: 客户选择
             item {
@@ -124,29 +127,29 @@ fun AddEditOrderScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text("产品列表 *", style = MaterialTheme.typography.titleMedium)
-                    Button(onClick = { showAddOrderItemDialog = true }) { // 点击显示对话框
+                    Button(onClick = { showAddOrderItemDialog = true }) {
                         Icon(Icons.Filled.Add, contentDescription = "添加产品")
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("添加产品")
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
             }
             if (uiState.tempOrderItems.isEmpty()) {
-                item {
-                    Text(
-                        "请点击“添加产品”按钮将产品加入订单。",
-                        modifier = Modifier.padding(vertical = 16.dp)
-                    )
-                }
+                item { Text("请点击“添加产品”按钮将产品加入订单。") }
             } else {
                 items(uiState.tempOrderItems, key = { it.tempId }) { tempItem ->
-                    TempOrderItemView( // 新的 Composable 用于显示和编辑订单项
+                    OrderItemInputRow(
                         item = tempItem,
-                        onUpdate = viewModel::updateTempOrderItem,
-                        onRemove = viewModel::removeTempOrderItem
+                        onQuantityChange = { tempId, newQuantity ->
+                            // 调用 ViewModel 的 update 方法，但只更新数量
+                            viewModel.updateTempOrderItem(tempId, newQuantity, tempItem.actualUnitPrice, tempItem.notes)
+                        },
+                        onPriceChange = { tempId, newPrice ->
+                            // 调用 ViewModel 的 update 方法，但只更新价格
+                            viewModel.updateTempOrderItem(tempId, tempItem.quantity, newPrice, tempItem.notes)
+                        },
+                        onRemoveClick = viewModel::removeTempOrderItem
                     )
-                    HorizontalDivider()
                 }
             }
 
@@ -165,12 +168,27 @@ fun AddEditOrderScreen(
                 )
             }
 
+            // Section 4: 保存按钮 (可以放在 LazyColumn 底部或 TopAppBar 中)
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = { viewModel.saveOrder() },
+                    enabled = !uiState.isSaving && uiState.selectedCustomer != null && uiState.tempOrderItems.isNotEmpty(),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (uiState.isSaving) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    } else {
+                        Text("保存订单")
+                    }
+                }
+            }
         }
     }
 
     // 显示添加产品对话框
     if (showAddOrderItemDialog) {
-        AddOrderItemDialog(
+        AddOrderItemDialog( // 注意：这个对话框需要用我们之前创建的那个
             availableProducts = uiState.availableProducts,
             onDismiss = { showAddOrderItemDialog = false },
             onConfirm = { product, quantity, price, notes ->
