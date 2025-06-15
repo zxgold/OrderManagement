@@ -25,6 +25,7 @@ import com.example.manager.ui.customer.CustomerDetailScreen
 import com.example.manager.ui.order.OrderDetailScreen
 import com.example.manager.ui.order.OrderListScreen
 import com.example.manager.ui.order.AddEditOrderScreen
+import com.example.manager.ui.supplier.SupplierProductScreen
 
 // import com.example.manager.ui.work.WorkScreen // 后续创建
 // import com.example.manager.ui.me.MeScreen // 后续创建
@@ -180,8 +181,12 @@ fun MainScreen(
                 val orderId = orderIdString?.toLongOrNull() // 如果是新增，orderId 会是 null
                 AddEditOrderScreen(orderId = orderId, navController = bottomSheetNavController)
             }
-// ...
 
+
+            // MainScreen.kt -> NavHost
+            composable(AppDestinations.SUPPLIER_PRODUCT_ROUTE) {
+                SupplierProductScreen(navController = bottomSheetNavController) // 传递 NavController
+            }
 
 
 

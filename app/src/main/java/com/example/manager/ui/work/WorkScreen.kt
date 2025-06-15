@@ -46,7 +46,7 @@ fun WorkScreen(
         DashboardActionItem("审批", Icons.Filled.Approval, "approvals"),
         DashboardActionItem("资料云盘", Icons.Filled.Cloud, "cloud_storage"),
         DashboardActionItem("支出账本", Icons.Filled.AccountBalanceWallet, "ledger"),
-        DashboardActionItem("供应商", Icons.Filled.Storefront, "suppliers")
+        DashboardActionItem("供应商", Icons.Filled.Storefront, "supplier_product_screen")
     )
 
     Column(
