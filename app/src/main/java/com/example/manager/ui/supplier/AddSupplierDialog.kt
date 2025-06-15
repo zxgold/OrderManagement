@@ -9,6 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -23,11 +24,12 @@ fun AddSupplierDialog(
         remark: String?
     ) -> Unit
 ) {
-    var name by remember { mutableStateOf("") }
-    var contactPerson by remember { mutableStateOf("") }
-    var phone by remember { mutableStateOf("") }
-    var address by remember { mutableStateOf("") }
-    var remark by remember { mutableStateOf("") }
+    // --- 修改：使用 TextFieldValue 管理状态 ---
+    var nameState by remember { mutableStateOf(TextFieldValue("")) }
+    var contactPersonState by remember { mutableStateOf(TextFieldValue("")) }
+    var phoneState by remember { mutableStateOf(TextFieldValue("")) }
+    var addressState by remember { mutableStateOf(TextFieldValue("")) }
+    var remarkState by remember { mutableStateOf(TextFieldValue("")) }
 
     // 用于UI校验
     var nameError by remember { mutableStateOf<String?>(null) }
@@ -39,10 +41,10 @@ fun AddSupplierDialog(
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 // 供应商名称 (必填)
                 OutlinedTextField(
-                    value = name,
+                    value = nameState,
                     onValueChange = {
-                        name = it
-                        nameError = if (it.isBlank()) "供应商名称不能为空" else null
+                        nameState = it
+                        nameError = if (it.text.isBlank()) "供应商名称不能为空" else null
                     },
                     label = { Text("供应商名称 *") },
                     isError = nameError != null,
@@ -55,8 +57,8 @@ fun AddSupplierDialog(
 
                 // 联系人 (可选)
                 OutlinedTextField(
-                    value = contactPerson,
-                    onValueChange = { contactPerson = it },
+                    value = contactPersonState,
+                    onValueChange = { contactPersonState = it },
                     label = { Text("联系人") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -66,8 +68,8 @@ fun AddSupplierDialog(
 
                 // 联系电话 (可选)
                 OutlinedTextField(
-                    value = phone,
-                    onValueChange = { phone = it },
+                    value = phoneState,
+                    onValueChange = { phoneState = it },
                     label = { Text("联系电话") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -77,8 +79,8 @@ fun AddSupplierDialog(
 
                 // 地址 (可选)
                 OutlinedTextField(
-                    value = address,
-                    onValueChange = { address = it },
+                    value = addressState,
+                    onValueChange = { addressState = it },
                     label = { Text("地址") },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
@@ -87,8 +89,8 @@ fun AddSupplierDialog(
 
                 // 备注 (可选)
                 OutlinedTextField(
-                    value = remark,
-                    onValueChange = { remark = it },
+                    value = remarkState,
+                    onValueChange = { remarkState = it },
                     label = { Text("备注") },
                     modifier = Modifier.fillMaxWidth(),
                     maxLines = 3
@@ -99,14 +101,14 @@ fun AddSupplierDialog(
             TextButton(
                 onClick = {
                     // 提交前再次校验
-                    nameError = if (name.isBlank()) "供应商名称不能为空" else null
+                    nameError = if (nameState.text.isBlank()) "供应商名称不能为空" else null
                     if (nameError == null) {
                         onConfirm(
-                            name.trim(),
-                            contactPerson.ifBlank { null },
-                            phone.ifBlank { null },
-                            address.ifBlank { null },
-                            remark.ifBlank { null }
+                            nameState.text.trim(),
+                            contactPersonState.text.ifBlank { null },
+                            phoneState.text.ifBlank { null },
+                            addressState.text.ifBlank { null },
+                            remarkState.text.ifBlank { null }
                         )
                     }
                 }

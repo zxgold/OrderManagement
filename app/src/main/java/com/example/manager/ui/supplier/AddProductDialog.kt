@@ -9,6 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.example.manager.data.model.entity.Product
 import com.example.manager.data.model.entity.Supplier
@@ -22,13 +23,13 @@ fun AddProductDialog(
     // ViewModel 会负责处理这些。
     onConfirm: (product: Product) -> Unit
 ) {
-    // --- 状态管理 ---
-    var name by remember { mutableStateOf("") }
-    var model by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf("") }
-    var priceString by remember { mutableStateOf("") }
-    var specifications by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
+    // --- 修改：使用 TextFieldValue 管理状态 ---
+    var nameState by remember { mutableStateOf(TextFieldValue("")) }
+    var modelState by remember { mutableStateOf(TextFieldValue("")) }
+    var categoryState by remember { mutableStateOf(TextFieldValue("")) }
+    var priceStringState by remember { mutableStateOf(TextFieldValue("")) }
+    var specificationsState by remember { mutableStateOf(TextFieldValue("")) }
+    var descriptionState by remember { mutableStateOf(TextFieldValue("")) }
 
     // --- 错误状态管理 ---
     var nameError by remember { mutableStateOf<String?>(null) }
@@ -42,10 +43,10 @@ fun AddProductDialog(
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 // 产品名称 (必填)
                 OutlinedTextField(
-                    value = name,
+                    value = nameState,
                     onValueChange = {
-                        name = it
-                        nameError = if (it.isBlank()) "产品名称不能为空" else null
+                        nameState = it
+                        nameError = if (it.text.isBlank()) "产品名称不能为空" else null
                     },
                     label = { Text("产品名称 *") },
                     isError = nameError != null,
@@ -57,8 +58,8 @@ fun AddProductDialog(
 
                 // 型号 (可选)
                 OutlinedTextField(
-                    value = model,
-                    onValueChange = { model = it },
+                    value = modelState,
+                    onValueChange = { modelState = it },
                     label = { Text("产品型号") },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
@@ -67,10 +68,10 @@ fun AddProductDialog(
 
                 // 默认售价 (必填)
                 OutlinedTextField(
-                    value = priceString,
+                    value = priceStringState,
                     onValueChange = {
-                        priceString = it
-                        priceError = if (it.toDoubleOrNull() == null || it.toDouble() < 0) "价格无效" else null
+                        priceStringState = it
+                        priceError = if (it.text.toDoubleOrNull() == null || it.text.toDouble() < 0) "价格无效" else null
                     },
                     label = { Text("默认售价 *") },
                     isError = priceError != null,
@@ -82,8 +83,8 @@ fun AddProductDialog(
 
                 // 分类 (可选)
                 OutlinedTextField(
-                    value = category,
-                    onValueChange = { category = it },
+                    value = categoryState,
+                    onValueChange = { categoryState = it },
                     label = { Text("产品分类") },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
@@ -92,8 +93,8 @@ fun AddProductDialog(
 
                 // 规格 (可选)
                 OutlinedTextField(
-                    value = specifications,
-                    onValueChange = { specifications = it },
+                    value = specificationsState,
+                    onValueChange = { specificationsState = it },
                     label = { Text("规格 (如颜色、尺寸)") },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -101,8 +102,8 @@ fun AddProductDialog(
 
                 // 描述 (可选)
                 OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
+                    value = descriptionState,
+                    onValueChange = { descriptionState = it },
                     label = { Text("产品描述") },
                     modifier = Modifier.fillMaxWidth(),
                     maxLines = 3
@@ -112,8 +113,8 @@ fun AddProductDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    val price = priceString.toDoubleOrNull()
-                    nameError = if (name.isBlank()) "产品名称不能为空" else null
+                    val price = priceStringState.text.toDoubleOrNull()
+                    nameError = if (nameState.text.isBlank()) "产品名称不能为空" else null
                     priceError = if (price == null || price < 0) "价格无效" else null
 
                     if (nameError == null && priceError == null) {
@@ -122,12 +123,12 @@ fun AddProductDialog(
                             // 所以这里可以传 0L
                             id = 0L,
                             supplierId = 0L,
-                            name = name.trim(),
-                            model = model.ifBlank { null },
-                            category = category.ifBlank { null },
+                            name = nameState.text.trim(),
+                            model = modelState.text.ifBlank { null },
+                            category = categoryState.text.ifBlank { null },
                             defaultPrice = price!!, // 已经校验过非 null
-                            specifications = specifications.ifBlank { null },
-                            description = description.ifBlank { null },
+                            specifications = specificationsState.text.ifBlank { null },
+                            description = descriptionState.text.ifBlank { null },
                             isActive = true
                         )
                         onConfirm(newProduct)

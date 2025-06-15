@@ -16,6 +16,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -37,8 +38,9 @@ fun LoginScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
 
-    var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var usernameState by remember { mutableStateOf(TextFieldValue("")) }
+
 
     var usernameError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
@@ -88,10 +90,10 @@ fun LoginScreen(
 
             // 用户名输入框
             OutlinedTextField(
-                value = username,
+                value = usernameState,
                 onValueChange = {
-                    username = it
-                    usernameError = if (it.isBlank()) "用户名不能为空" else null
+                    usernameState = it
+                    usernameError = if (it.text.isBlank()) "用户名不能为空" else null
                 },
                 label = { Text("用户名") },
                 modifier = Modifier.fillMaxWidth(),
@@ -115,6 +117,7 @@ fun LoginScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = {
                     focusManager.clearFocus()
+                    val username = usernameState.text // <-- 从 .text 获取字符串
                     if (username.isNotBlank() && password.isNotBlank()) {
                         viewModel.login(username.trim(), password)
                     } else {
@@ -133,6 +136,7 @@ fun LoginScreen(
                 onClick = {
                     keyboardController?.hide()
                     focusManager.clearFocus()
+                    val username = usernameState.text // <-- 从 .text 获取字符串
                     usernameError = if (username.isBlank()) "用户名不能为空" else null
                     passwordError = if (password.isBlank()) "密码不能为空" else null
                     if (usernameError == null && passwordError == null) {

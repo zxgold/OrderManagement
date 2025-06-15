@@ -21,6 +21,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.manager.ui.theme.ManagerTheme
 import com.example.manager.viewmodel.AuthViewModel
 import com.example.manager.viewmodel.NavigationEvent
+import androidx.compose.ui.text.input.TextFieldValue // <-- **导入 TextFieldValue**
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
@@ -33,13 +34,17 @@ fun RegistrationScreen(
     val isInitialSetupNeeded by viewModel.isInitialSetupNeeded.collectAsStateWithLifecycle() // 获取是否首次设置
 
     val snackbarHostState = remember { SnackbarHostState() }
-    val keyboardController = LocalSoftwareKeyboardController.current
 
-    var staffName by remember { mutableStateOf("老板") } // 改为 staffName，允许用户修改
-    var username by remember { mutableStateOf("") }
+    // --- 使用 TextFieldValue 来管理状态 ---
+    var storeNameState by remember { mutableStateOf(TextFieldValue("")) } // <-- 使用 TextFieldValue
+    var staffNameState by remember { mutableStateOf(TextFieldValue("老板")) }
+    var usernameState by remember { mutableStateOf(TextFieldValue("")) }
+
+
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
-    var storeName by remember { mutableStateOf("") } // <-- **新增店铺名称状态**
+
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     // 本地 UI 校验状态
     var staffNameError by remember { mutableStateOf<String?>(null) } // 从 bossNameError 改为 staffNameError
@@ -111,12 +116,13 @@ fun RegistrationScreen(
             )
             Spacer(modifier = Modifier.height(24.dp))
 
-            // --- 新增：店铺名称输入框 ---
+            // --- 店铺名称输入框 ---
+
             OutlinedTextField(
-                value = storeName,
-                onValueChange = {
-                    storeName = it
-                    storeNameError = if (it.isBlank()) "店铺名称不能为空" else null
+                value = storeNameState, // 绑定TextFieldValue状态
+                onValueChange = { newValue -> // onValueChange 现在返回 TextFieldValue
+                    storeNameState = newValue
+                    storeNameError = if (newValue.text.isBlank()) "店铺名称不能为空" else null
                 },
                 label = { Text("店铺名称 *") },
                 modifier = Modifier.fillMaxWidth(),
@@ -130,10 +136,10 @@ fun RegistrationScreen(
 
             // 您的称呼/员工名称输入框 (之前是 bossName)
             OutlinedTextField(
-                value = staffName, // 使用 staffName
-                onValueChange = {
-                    staffName = it
-                    staffNameError = if (it.isBlank()) "您的称呼不能为空" else null
+                value = staffNameState, // 使用 staffName
+                onValueChange = { newValue ->
+                    staffNameState = newValue
+                    staffNameError = if (newValue.text.isBlank()) "您的称呼不能为空" else null
                 },
                 label = { Text("您的称呼/姓名 *") }, // 标签更通用
                 modifier = Modifier.fillMaxWidth(),
@@ -146,10 +152,10 @@ fun RegistrationScreen(
 
             // 用户名输入框 (保持不变)
             OutlinedTextField(
-                value = username,
-                onValueChange = {
-                    username = it
-                    usernameError = if (it.isBlank()) "用户名不能为空" else null
+                value = usernameState,
+                onValueChange = { newValue ->
+                    usernameState = newValue
+                    usernameError = if (newValue.text.isBlank()) "用户名不能为空" else null
                 },
                 label = { Text("登录用户名 *") }, /* ... */
                 modifier = Modifier.fillMaxWidth(),
@@ -203,6 +209,11 @@ fun RegistrationScreen(
             Button(
                 onClick = {
                     keyboardController?.hide()
+                    // **现在从 .text 属性获取字符串进行校验**
+                    val storeName = storeNameState.text
+                    val staffName = staffNameState.text
+                    val username = usernameState.text
+
                     // 执行所有校验
                     storeNameError = if (storeName.isBlank()) "店铺名称不能为空" else null // **校验店铺名称**
                     staffNameError = if (staffName.isBlank()) "您的称呼不能为空" else null
