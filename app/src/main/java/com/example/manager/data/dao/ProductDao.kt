@@ -18,4 +18,17 @@ interface ProductDao {
     @Query("SELECT * FROM products WHERE supplier_id = :supplierId AND is_active = 1 ORDER BY name ASC")
     fun getAllActiveProductsBySupplierIdFlow(supplierId: Long): Flow<List<Product>>
 
+    // **新增：根据店铺 ID 获取该店铺所有供应商的所有激活产品**
+    @Query("""
+        SELECT p.* FROM products AS p 
+        INNER JOIN suppliers AS s ON p.supplier_id = s.id 
+        WHERE s.store_id = :storeId AND p.is_active = 1
+        ORDER BY s.name ASC, p.name ASC
+    """)
+    fun getAllActiveProductsByStoreIdFlow(storeId: Long): Flow<List<Product>>
+
+    // **新增：根据产品ID获取产品，不再需要 storeId**
+    @Query("SELECT * FROM products WHERE id = :productId LIMIT 1")
+    suspend fun getProductById(productId: Long): Product?
+
 }

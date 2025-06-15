@@ -47,6 +47,13 @@ class ProductRepositoryImpl @Inject constructor(
         return productDao.getAllActiveProductsBySupplierIdFlow(supplierId)
     }
 
+    override fun getAllActiveProductsByStoreIdFlow(storeId: Long): Flow<List<Product>> {
+        return productDao.getAllActiveProductsByStoreIdFlow(storeId)
+    }
+    override suspend fun getProductById(productId: Long): Product? {
+        return productDao.getProductById(productId)
+    }
+
 
 
 }
