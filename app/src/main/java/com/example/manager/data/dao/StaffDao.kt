@@ -29,4 +29,8 @@ interface StaffDao {
 
     @Query("SELECT COUNT(*) FROM staff")
     suspend fun countStaff(): Int // 返回员工总数
+
+    // StaffDao.kt
+    @Query("SELECT * FROM staff WHERE id IN (:ids)")
+    suspend fun getStaffByIds(ids: List<Long>): List<Staff>
 }

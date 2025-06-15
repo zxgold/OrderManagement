@@ -2,6 +2,7 @@ package com.example.manager.data.dao
 
 import androidx.room.*
 import com.example.manager.data.model.entity.Order
+import com.example.manager.data.model.entity.OrderItem
 import com.example.manager.data.model.enums.OrderStatus
 
 @Dao
@@ -17,6 +18,10 @@ interface OrderDao {
     // 但通常 Order ID 是全局唯一的，ViewModel/Repository 层会做校验
     @Delete
     suspend fun deleteOrder(order: Order): Int
+
+    @Query("SELECT * FROM order_items WHERE id = :orderItemId")
+    suspend fun getOrderItemById(orderItemId: Long): OrderItem? // <-- 应该在这里
+
 
     @Query("SELECT * FROM orders WHERE id = :orderId AND store_id = :storeId") // 添加 store_id 条件
     suspend fun getOrderByIdAndStoreId(orderId: Long, storeId: Long): Order?

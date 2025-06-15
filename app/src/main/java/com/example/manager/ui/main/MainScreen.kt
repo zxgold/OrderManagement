@@ -26,6 +26,7 @@ import com.example.manager.ui.order.OrderDetailScreen
 import com.example.manager.ui.order.OrderListScreen
 import com.example.manager.ui.order.AddEditOrderScreen
 import com.example.manager.ui.supplier.SupplierProductScreen
+import com.example.manager.ui.workorder.WorkOrderDetailScreen
 import com.example.manager.ui.workorder.WorkOrderListScreen
 
 // import com.example.manager.ui.work.WorkScreen // 后续创建
@@ -190,6 +191,28 @@ fun MainScreen(
 
             composable(AppDestinations.WORK_ORDER_LIST_ROUTE) {
                 WorkOrderListScreen(navController = bottomSheetNavController)
+            }
+
+            composable(
+                route = AppDestinations.WORK_ORDER_DETAIL_ROUTE_TEMPLATE,
+                arguments = listOf(navArgument(AppDestinations.WORK_ORDER_DETAIL_ARG_ID) {
+                    type = NavType.LongType // 明确参数类型为 Long
+                })
+            ) { backStackEntry ->
+                // 从 backStackEntry 的 arguments 中安全地获取 orderItemId
+                val orderItemId = backStackEntry.arguments?.getLong(AppDestinations.WORK_ORDER_DETAIL_ARG_ID)
+                if (orderItemId != null && orderItemId != -1L) {
+                    WorkOrderDetailScreen(
+                        // customerId = customerId, // 这里应该是 orderItemId
+                        // 我们之前在 WorkOrderDetailViewModel 中已经设置了从 SavedStateHandle 获取
+                        // 所以这里其实不需要显式传递 ID 给 Composable，除非你的 Composable 需要它
+                        // 但为了清晰，我们传递 NavController
+                        navController = bottomSheetNavController
+                    )
+                } else {
+                    // 处理 ID 无效的情况
+                    Text("错误：无效的工单ID。")
+                }
             }
 
         }

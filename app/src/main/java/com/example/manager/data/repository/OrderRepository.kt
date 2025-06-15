@@ -2,8 +2,10 @@ package com.example.manager.data.repository
 
 import com.example.manager.data.model.entity.Order
 import com.example.manager.data.model.entity.OrderItem
+import com.example.manager.data.model.entity.OrderItemStatusLog
 import com.example.manager.data.model.enums.OrderItemStatus
 import com.example.manager.data.model.enums.OrderStatus
+import kotlinx.coroutines.flow.Flow
 
 interface OrderRepository {
     // 创建订单时，Order 对象应已包含正确的 storeId, creatingStaffId 等
@@ -30,4 +32,8 @@ interface OrderRepository {
         staffId: Long,
         storeId: Long // 用于库存操作
     ): Result<Boolean>
+
+    fun getLogsForOrderItemFlow(orderItemId: Long): Flow<List<OrderItemStatusLog>> // <-- **添加此方法**
+
+    suspend fun getOrderItemById(orderItemId: Long): OrderItem? // <-- 添加到 Repository
 }

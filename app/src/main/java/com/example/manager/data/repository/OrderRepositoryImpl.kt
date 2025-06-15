@@ -7,13 +7,18 @@ import com.example.manager.data.dao.OrderDao
 import com.example.manager.data.dao.OrderItemDao
 import com.example.manager.data.dao.OrderItemStatusLogDao
 import com.example.manager.data.db.AppDatabase
+import com.example.manager.data.model.entity.InventoryItem
 import com.example.manager.data.model.entity.Order
 import com.example.manager.data.model.entity.OrderItem
 import com.example.manager.data.model.entity.OrderItemStatusLog
 import com.example.manager.data.model.enums.OrderItemStatus
 import com.example.manager.data.model.enums.OrderStatus
+import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
+import com.example.manager.data.repository.InventoryRepository
+
+
 
 @Singleton
 class OrderRepositoryImpl @Inject constructor(
@@ -21,7 +26,7 @@ class OrderRepositoryImpl @Inject constructor(
     private val orderItemDao: OrderItemDao,
     private val appDatabase: AppDatabase,
     private val orderItemStatusLogDao: OrderItemStatusLogDao,
-    private val inventoryItemDao: InventoryItemDao // <-- 注入 InventoryItemDao 用于库存联动
+    private val inventoryRepository: InventoryRepository
 ) : OrderRepository {
 
     override suspend fun insertOrderWithItems(order: Order, items: List<OrderItem>): Result<Long> {
@@ -98,6 +103,10 @@ class OrderRepositoryImpl @Inject constructor(
         return orderItemDao.getOrderItemsByOrderId(orderId)
     }
 
+    override suspend fun getOrderItemById(orderItemId: Long): OrderItem? {
+        return orderItemDao.getOrderItemById(orderItemId)
+    }
+
     override suspend fun updateOrderItem(orderItem: OrderItem): Result<Int> {
         return try {
             Result.success(orderItemDao.updateOrderItem(orderItem))
@@ -119,7 +128,14 @@ class OrderRepositoryImpl @Inject constructor(
 
                 val oldStatus = orderItem.status
 
+                // 只在状态实际改变时才执行操作
+                if (newStatus == oldStatus) {
+                    Log.d("OrderRepoImpl", "Status is already $newStatus. No update performed.")
+                    return@withTransaction // 提前退出事务
+                }
+
                 // 更新订单项状态
+                // 这里应该更新 orderItem 表，而不是 order 表
                 orderItemDao.updateOrderItem(orderItem.copy(
                     status = newStatus,
                     statusLastUpdateAt = System.currentTimeMillis(),
@@ -138,19 +154,25 @@ class OrderRepositoryImpl @Inject constructor(
                 // --- 库存联动逻辑 ---
                 if (orderItem.productId != null) {
                     // 1. 入库：从“物流中”或更早的状态变为“已到库”
+                    // 确保不会重复入库
                     if (newStatus == OrderItemStatus.IN_STOCK && oldStatus < OrderItemStatus.IN_STOCK) {
-                        inventoryItemDao.increaseStock(storeId, orderItem.productId, orderItem.quantity)
+                        Log.d("OrderRepoImpl", "Increasing stock for product ${orderItem.productId} by ${orderItem.quantity}")
+                        // **调用 inventoryRepository 的方法**
+                        inventoryRepository.increaseStock(storeId, orderItem.productId, orderItem.quantity)
                     }
                     // 2. 出库：从“已到库”变为“已安装”
                     else if (newStatus == OrderItemStatus.INSTALLED && oldStatus == OrderItemStatus.IN_STOCK) {
-                        val success = inventoryItemDao.decreaseStock(storeId, orderItem.productId, orderItem.quantity)
-                        if (!success) {
+                        Log.d("OrderRepoImpl", "Decreasing stock for product ${orderItem.productId} by ${orderItem.quantity}")
+                        // **调用 inventoryRepository 的方法**
+                        val decreaseResult = inventoryRepository.decreaseStock(storeId, orderItem.productId, orderItem.quantity)
+                        if (decreaseResult.isFailure) {
+                            // 如果减库存失败（库存不足），抛出异常以回滚整个事务
                             throw IllegalStateException("库存不足，无法将产品(ID: ${orderItem.productId})状态更新为已安装。")
                         }
                     }
                 }
 
-                // TODO: 检查并更新订单主状态的逻辑 (如果需要)
+                // TODO: 检查并更新订单主状态的逻辑
             }
             Result.success(true)
         } catch (e: Exception) {
@@ -158,4 +180,10 @@ class OrderRepositoryImpl @Inject constructor(
             Result.failure(e)
         }
     }
+
+    override fun getLogsForOrderItemFlow(orderItemId: Long): Flow<List<OrderItemStatusLog>> {
+        return orderItemStatusLogDao.getLogsForOrderItemFlow(orderItemId)
+    }
+
+
 }

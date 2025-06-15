@@ -21,7 +21,11 @@ import com.example.manager.data.model.enums.OrderItemStatus
             onDelete = ForeignKey.SET_NULL // 操作员工被删除，日志中的ID设为NULL
         )
     ],
-    indices = [Index(value = ["order_item_id"])]
+    indices = [
+        Index(value = ["order_item_id"]),
+        Index(value = ["staff_id"])
+
+    ]
 )
 data class OrderItemStatusLog(
     @PrimaryKey(autoGenerate = true)

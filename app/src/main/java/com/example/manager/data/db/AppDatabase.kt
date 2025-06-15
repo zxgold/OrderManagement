@@ -12,7 +12,7 @@ import com.example.manager.data.model.typeconverter.Converters // 导入 Convert
 // 如果你之前的版本是 1，那么现在至少应该是 2。
 // 由于我们做了大量结构改动 (V3 设计)，可以跳跃式增加，比如直接用 3，
 // 关键是 **必须比之前的版本号大**。
-private const val DATABASE_VERSION = 11 // <--- !! 修改为你确定的新版本号 !!
+private const val DATABASE_VERSION = 14 // <--- !! 修改为你确定的新版本号 !!
 
 @Database(
     entities = [
@@ -28,8 +28,8 @@ private const val DATABASE_VERSION = 11 // <--- !! 修改为你确定的新版�
         FollowUp::class,
         LedgerEntry::class,
         ActionLog::class,
-        OrderItemStatusLog::class
-
+        OrderItemStatusLog::class,
+        InventoryItem::class
     ],
     version = DATABASE_VERSION, // <-- 使用上面定义的常量
     exportSchema = true // <-- 推荐设置为 true，用于导出 Schema JSON 文件
@@ -51,6 +51,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun ledgerEntryDao(): LedgerEntryDao
     abstract fun actionLogDao(): ActionLogDao
     abstract fun orderItemStatusLogDao(): OrderItemStatusLogDao
+    abstract fun inventoryItemDao(): InventoryItemDao
 
 
     // --- Companion Object (通常用于提供单例实例，结合 Hilt 会更简单) ---

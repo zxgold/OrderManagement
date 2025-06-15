@@ -1,6 +1,7 @@
 package com.example.manager.data.model.entity
 
 import androidx.room.*
+import com.example.manager.data.model.typeconverter.Converters
 
 @Entity(
     tableName = "inventory_items",
@@ -20,9 +21,11 @@ import androidx.room.*
     ],
     indices = [
         // 一个店铺中的同一种产品，只应该有一条库存记录
-        Index(value = ["store_id", "product_id"], unique = true)
+        Index(value = ["store_id", "product_id"], unique = true),
+        Index(value = ["product_id"])
     ]
 )
+
 data class InventoryItem(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,

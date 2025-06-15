@@ -28,4 +28,10 @@ object AppDestinations {
 
     const val WORK_ORDER_LIST_ROUTE = "work_order_list_screen" // 新增工单列表路由
 
+    const val WORK_ORDER_DETAIL_ARG_ID = "orderItemId" // 将参数名也定义为常量，避免拼写错误
+    const val WORK_ORDER_DETAIL_ROUTE_TEMPLATE = "work_order_detail_screen/{$WORK_ORDER_DETAIL_ARG_ID}"
+    fun workOrderDetailRoute(orderItemId: Long): String {// 辅助函数，用于构建带实际 ID 的路由字符串
+        return "work_order_detail_screen/$orderItemId"
+    }
+
 }

@@ -11,4 +11,5 @@ interface OrderItemStatusLogDao {
 
     @Query("SELECT * FROM order_item_status_logs WHERE order_item_id = :orderItemId ORDER BY timestamp ASC")
     fun getLogsForOrderItemFlow(orderItemId: Long): Flow<List<OrderItemStatusLog>>
+
 }
