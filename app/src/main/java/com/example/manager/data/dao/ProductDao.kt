@@ -2,6 +2,7 @@ package com.example.manager.data.dao
 
 import androidx.room.*
 import com.example.manager.data.model.entity.Product
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ProductDao {
@@ -14,28 +15,7 @@ interface ProductDao {
     @Delete
     suspend fun deleteProduct(product: Product): Int
 
-    @Query("SELECT * FROM products WHERE id = :id AND store_id = :storeId")
-    suspend fun getProductByIdAndStoreId(id: Long, storeId: Long): Product?
+    @Query("SELECT * FROM products WHERE supplier_id = :supplierId AND is_active = 1 ORDER BY name ASC")
+    fun getAllActiveProductsBySupplierIdFlow(supplierId: Long): Flow<List<Product>>
 
-    // 根据店铺ID获取所有产品
-    @Query("SELECT * FROM products WHERE store_id = :storeId AND is_active = 1 ORDER BY category ASC, name ASC")
-    suspend fun getAllActiveProductsByStoreId(storeId: Long): List<Product>
-
-    @Query("SELECT * FROM products WHERE store_id = :storeId ORDER BY category ASC, name ASC")
-    suspend fun getAllProductsByStoreId(storeId: Long): List<Product>
-
-    // 根据店铺ID和查询条件搜索产品
-    @Query("SELECT * FROM products WHERE store_id = :storeId AND is_active = 1 AND (name LIKE '%' || :query || '%' OR category LIKE '%' || :query || '%' OR model LIKE '%' || :query || '%') ORDER BY category ASC, name ASC")
-    suspend fun searchActiveProductsByStoreId(query: String, storeId: Long): List<Product>
-
-    // 获取特定店铺的所有产品种类
-    @Query("SELECT DISTINCT category FROM products WHERE store_id = :storeId AND category IS NOT NULL AND category != '' ORDER BY category ASC")
-    suspend fun getAllCategoriesByStoreId(storeId: Long): List<String>
-
-    @Query("""
-        SELECT * FROM products 
-        WHERE store_id = :storeId AND name = :name AND IFNULL(model, '') = IFNULL(:model, '') 
-        LIMIT 1
-    """)
-    suspend fun getProductByNameAndModel(storeId: Long, name: String, model: String?): Product?
 }
