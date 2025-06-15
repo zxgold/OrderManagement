@@ -137,6 +137,11 @@ class SupplierProductViewModel @Inject constructor(
         }
     }
 
+    /* addProduct
+     * 这个方法的核心就是接收 UI 创建的 Product 对象，
+     * 然后用 copy() 方法将当前选中的 selectedSupplier.id 赋给 supplierId，
+     * 最后调用 productRepository.insertProduct()
+     */
     fun addProduct(product: Product) {
         viewModelScope.launch {
             val selectedSupplier = _uiState.value.selectedSupplier
@@ -144,14 +149,14 @@ class SupplierProductViewModel @Inject constructor(
                 _uiState.update { it.copy(errorMessage = "请先选择一个供应商") }
                 return@launch
             }
-            // Product object should be created with the correct supplierId
+            // 使用选中的供应商的 ID 来创建最终要保存到数据库的 Product 对象
             val productToInsert = product.copy(supplierId = selectedSupplier.id)
 
-            _uiState.update { it.copy(isLoadingProducts = true) }
+            // _uiState.update { it.copy(isLoadingProducts = true) } // 可以在这里设置加载状态，但因为是 Flow，列表会自动刷新，所以可能不需要
             productRepository.insertProduct(productToInsert)
                 .onSuccess {
-                    Log.d("SupplierProductVM", "Product added successfully to supplier ${selectedSupplier.name}")
-                    // The product list will auto-refresh due to the flatMapLatest flow
+                    Log.d("SupplierProductVM", "Product '${productToInsert.name}' added successfully to supplier '${selectedSupplier.name}'")
+                    // 产品列表会自动刷新，无需手动调用
                 }
                 .onFailure { e ->
                     val errorMsg = if (e is SQLiteConstraintException) "添加失败：产品名称和型号在该供应商下已存在。" else "添加产品失败: ${e.localizedMessage}"

@@ -142,17 +142,17 @@ fun SupplierProductScreen(
         )
     }
 
-    if (showAddProductDialog) {
-        // TODO: 创建 AddProductDialog Composable
-        // AddProductDialog(
-        //     onDismiss = { showAddProductDialog = false },
-        //     onConfirm = { product -> // 接收一个不含ID和supplierId的Product对象
-        //         viewModel.addProduct(product)
-        //         showAddProductDialog = false
-        //     }
-        // )
-        Log.d("SupplierScreen", "Add Product Dialog should be shown (TODO)")
-        showAddProductDialog = false
+    // 当需要显示添加产品对话框，并且确实有一个选中的供应商时
+    if (showAddProductDialog && uiState.selectedSupplier != null) {
+        AddProductDialog(
+            forSupplier = uiState.selectedSupplier!!, // 传递当前选中的供应商
+            onDismiss = { showAddProductDialog = false },
+            onConfirm = { productWithoutIds ->
+                // 调用 ViewModel 的 addProduct 方法
+                viewModel.addProduct(productWithoutIds)
+                showAddProductDialog = false // 添加后关闭对话框
+            }
+        )
     }
 }
 
