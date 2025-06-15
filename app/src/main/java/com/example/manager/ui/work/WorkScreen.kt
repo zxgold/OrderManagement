@@ -22,6 +22,7 @@ import com.example.manager.ui.navigation.AppDestinations
 import com.example.manager.ui.navigation.AppDestinations.CUSTOMER_LIST_ROUTE
 import com.example.manager.ui.navigation.AppDestinations.ORDER_LIST_ROUTE
 import com.example.manager.ui.navigation.AppDestinations.SUPPLIER_PRODUCT_ROUTE
+import com.example.manager.ui.navigation.AppDestinations.WORK_ORDER_LIST_ROUTE
 
 
 data class DashboardActionItem(
@@ -40,7 +41,7 @@ fun WorkScreen(
         DashboardActionItem("跟进", Icons.Filled.Schedule, "follow_up"),
         DashboardActionItem("销售单", Icons.AutoMirrored.Filled.ReceiptLong, "order_list_screen"),
         DashboardActionItem("回款", Icons.Filled.Payment, "payments"),
-        DashboardActionItem("工单", Icons.AutoMirrored.Filled.ListAlt, "work_orders")
+        DashboardActionItem("工单", Icons.AutoMirrored.Filled.ListAlt, "work_order_list_screen")
     )
 
     val internalManagementItems = listOf(
@@ -78,6 +79,9 @@ fun WorkScreen(
                 }
                 if (itemTag == ORDER_LIST_ROUTE) {
                     bottomNavController.navigate(ORDER_LIST_ROUTE)
+                }
+                if (itemTag == WORK_ORDER_LIST_ROUTE) {
+                    bottomNavController.navigate(WORK_ORDER_LIST_ROUTE)
                 }
 
 
