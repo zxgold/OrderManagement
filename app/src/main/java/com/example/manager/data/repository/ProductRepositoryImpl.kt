@@ -3,6 +3,7 @@ package com.example.manager.data.repository
 import android.database.sqlite.SQLiteConstraintException
 import com.example.manager.data.dao.ProductDao
 import com.example.manager.data.model.entity.Product
+import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -33,27 +34,26 @@ class ProductRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun deleteProduct(product: Product): Int {
-        return productDao.deleteProduct(product)
+    override suspend fun deleteProduct(product: Product): Result<Int> { // <-- **修改返回类型**
+        return try {
+            val deletedRows = productDao.deleteProduct(product)
+            Result.success(deletedRows) // <-- **将结果包装在 Result.success 中**
+        } catch (e: Exception) {
+            Result.failure(e) // <-- **将异常包装在 Result.failure 中**
+        }
     }
 
-    override suspend fun getProductByIdAndStoreId(id: Long, storeId: Long): Product? {
-        return productDao.getProductByIdAndStoreId(id, storeId)
+    override fun getAllActiveProductsBySupplierIdFlow(supplierId: Long): Flow<List<Product>> {
+        return productDao.getAllActiveProductsBySupplierIdFlow(supplierId)
     }
 
-    override suspend fun getAllActiveProductsByStoreId(storeId: Long): List<Product> {
-        return productDao.getAllActiveProductsByStoreId(storeId)
+    override fun getAllActiveProductsByStoreIdFlow(storeId: Long): Flow<List<Product>> {
+        return productDao.getAllActiveProductsByStoreIdFlow(storeId)
+    }
+    override suspend fun getProductById(productId: Long): Product? {
+        return productDao.getProductById(productId)
     }
 
-    override suspend fun searchActiveProductsByStoreId(query: String, storeId: Long): List<Product> {
-        return productDao.searchActiveProductsByStoreId(query, storeId)
-    }
 
-    override suspend fun getAllCategoriesByStoreId(storeId: Long): List<String> {
-        return productDao.getAllCategoriesByStoreId(storeId)
-    }
 
-    override suspend fun getProductByNameAndModel(storeId: Long, name: String, model: String?): Product? {
-        return productDao.getProductByNameAndModel(storeId, name, model)
-    }
 }

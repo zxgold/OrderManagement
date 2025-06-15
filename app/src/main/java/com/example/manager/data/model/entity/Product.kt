@@ -10,32 +10,23 @@ import androidx.room.PrimaryKey
     tableName = "products",
     foreignKeys = [
         ForeignKey(
-            entity = Store::class,
+            entity = Supplier::class,
             parentColumns = ["id"],
-            childColumns = ["store_id"],
-            // 当店铺被删除时，其下的产品如何处理？
-            // CASCADE: 店铺删除，该店铺的所有产品也删除 (如果产品是严格店铺专属)
-            // RESTRICT: 如果店铺下还有产品，不允许删除店铺
-            onDelete = ForeignKey.CASCADE // 假设产品严格属于店铺，确认这是期望行为
+            childColumns = ["supplier_id"],
+            onDelete = ForeignKey.CASCADE
         )
     ],
     indices = [
-        // 店铺内的产品名称和型号组合通常应该是唯一的
-        // 如果 name 或 model 可能为 null，你需要考虑 SQLite 对 NULL 在唯一索引中的处理
-        // 通常，多行可以有相同的 NULL 值而不会违反唯一约束。
-        // 如果 name 和 model 都是非空的，这个唯一索引会更有力。
-        Index(value = ["store_id", "name", "model"], unique = true),
-        Index(value = ["store_id", "category"]), // 按店铺和分类查询
-        Index(value = ["store_id", "name"]),    // 按店铺和名称查询
-        Index(value = ["store_id"])             // **为 store_id 外键创建索引**
+        Index(value = ["supplier_id", "name", "model"], unique = true),
+        Index(value = ["supplier_id"])
     ]
 )
 data class Product(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
 
-    @ColumnInfo(name = "store_id") // <-- **新增：关联到店铺的 ID**
-    val storeId: Long,            // **产品必须属于一个店铺，设为非空**
+    @ColumnInfo(name = "supplier_id") // <-- **修改**
+    val supplierId: Long,
 
     @ColumnInfo(name = "category")
     val category: String? = null, // 产品分类，例如 "沙发", "床垫"

@@ -21,6 +21,7 @@ import com.example.manager.ui.components.DashboardItem // 导入 DashboardItem
 import com.example.manager.ui.navigation.AppDestinations
 import com.example.manager.ui.navigation.AppDestinations.CUSTOMER_LIST_ROUTE
 import com.example.manager.ui.navigation.AppDestinations.ORDER_LIST_ROUTE
+import com.example.manager.ui.navigation.AppDestinations.SUPPLIER_PRODUCT_ROUTE
 
 
 data class DashboardActionItem(
@@ -46,7 +47,7 @@ fun WorkScreen(
         DashboardActionItem("审批", Icons.Filled.Approval, "approvals"),
         DashboardActionItem("资料云盘", Icons.Filled.Cloud, "cloud_storage"),
         DashboardActionItem("支出账本", Icons.Filled.AccountBalanceWallet, "ledger"),
-        DashboardActionItem("供应商", Icons.Filled.Storefront, "suppliers")
+        DashboardActionItem("供应商", Icons.Filled.Storefront, "supplier_product_screen")
     )
 
     Column(
@@ -80,6 +81,8 @@ fun WorkScreen(
                 }
 
 
+
+
                 // TODO: 处理其他导航
             }
         )
@@ -93,6 +96,9 @@ fun WorkScreen(
             onItemClick = { itemTag ->
                 Log.d("WorkScreen", "内部管理项点击: $itemTag")
                 // TODO: 处理导航
+                if (itemTag == SUPPLIER_PRODUCT_ROUTE) {
+                    bottomNavController.navigate(SUPPLIER_PRODUCT_ROUTE)
+                }
             }
         )
     }

@@ -1,15 +1,15 @@
 package com.example.manager.data.repository
 
 import com.example.manager.data.model.entity.Product
+import kotlinx.coroutines.flow.Flow
 
 interface ProductRepository {
-    // Product 对象应已包含正确的 storeId
     suspend fun insertProduct(product: Product): Result<Long>
     suspend fun updateProduct(product: Product): Result<Int>
-    suspend fun deleteProduct(product: Product): Int // 或 deleteProduct(productId: Long, storeId: Long)
-    suspend fun getProductByIdAndStoreId(id: Long, storeId: Long): Product?
-    suspend fun getAllActiveProductsByStoreId(storeId: Long): List<Product>
-    suspend fun searchActiveProductsByStoreId(query: String, storeId: Long): List<Product>
-    suspend fun getAllCategoriesByStoreId(storeId: Long): List<String>
-    suspend fun getProductByNameAndModel(storeId: Long, name: String, model: String?): Product?
+    suspend fun deleteProduct(product: Product): Result<Int> // <-- **修改返回类型为 Result<Int>**
+    fun getAllActiveProductsBySupplierIdFlow(supplierId: Long): Flow<List<Product>>
+    fun getAllActiveProductsByStoreIdFlow(storeId: Long): Flow<List<Product>> // <-- 新增或修改为此
+    suspend fun getProductById(productId: Long): Product? // <-- 新增
+
+
 }

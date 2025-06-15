@@ -24,4 +24,6 @@ object AppDestinations {
     fun addOrderRoute(): String = "add_edit_order_screen" // 新增订单时，不传 orderId
     fun editOrderRoute(orderId: Long): String = "add_edit_order_screen?orderId=$orderId" // 编辑时传递 orderId
 
+    const val SUPPLIER_PRODUCT_ROUTE = "supplier_product_screen"
+
 }
