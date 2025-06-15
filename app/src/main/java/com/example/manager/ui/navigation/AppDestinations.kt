@@ -26,4 +26,6 @@ object AppDestinations {
 
     const val SUPPLIER_PRODUCT_ROUTE = "supplier_product_screen"
 
+    const val WORK_ORDER_LIST_ROUTE = "work_order_list_screen" // 新增工单列表路由
+
 }
