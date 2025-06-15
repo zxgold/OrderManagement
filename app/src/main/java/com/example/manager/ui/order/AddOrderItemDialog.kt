@@ -6,6 +6,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.example.manager.data.model.entity.Product
 import com.example.manager.viewmodel.TempOrderItem // 导入 TempOrderItem (如果需要编辑)
@@ -19,10 +20,12 @@ fun AddOrderItemDialog(
     onConfirm: (product: Product, quantity: Int, price: Double, notes: String?) -> Unit
 ) {
     var selectedProduct by remember { mutableStateOf<Product?>(null) }
-    var quantityString by remember { mutableStateOf("1") }
-    var priceString by remember { mutableStateOf("") }
-    var notes by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
+
+    // --- 使用 TextFieldValue 管理状态 ---
+    var quantityState by remember { mutableStateOf(TextFieldValue("1")) }
+    var priceState by remember { mutableStateOf(TextFieldValue("")) }
+    var notesState by remember { mutableStateOf(TextFieldValue("")) }
 
     var quantityError by remember { mutableStateOf<String?>(null) }
     var priceError by remember { mutableStateOf<String?>(null) }
@@ -56,7 +59,7 @@ fun AddOrderItemDialog(
                                 text = { Text("${product.name} (${product.model ?: ""}) - ¥${product.defaultPrice}") },
                                 onClick = {
                                     selectedProduct = product
-                                    priceString = product.defaultPrice.toString() // 自动填充默认价格
+                                    priceState = TextFieldValue(product.defaultPrice.toString()) // 自动填充默认价格
                                     expanded = false
                                     productError = null // 清除错误
                                 }
@@ -70,10 +73,10 @@ fun AddOrderItemDialog(
                 // 数量和价格输入
                 Row {
                     OutlinedTextField(
-                        value = quantityString,
+                        value = quantityState,
                         onValueChange = {
-                            quantityString = it
-                            quantityError = if (it.toIntOrNull() == null || it.toInt() <= 0) "数量必须是正整数" else null
+                            quantityState = it
+                            quantityError = if (it.text.toIntOrNull() == null || it.text.toInt() <= 0) "数量必须是正整数" else null
                         },
                         label = { Text("数量 *") },
                         modifier = Modifier.weight(1f),
@@ -82,10 +85,10 @@ fun AddOrderItemDialog(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     OutlinedTextField(
-                        value = priceString,
+                        value = priceState,
                         onValueChange = {
-                            priceString = it
-                            priceError = if (it.toDoubleOrNull() == null || it.toDouble() < 0) "价格无效" else null
+                            priceState = it
+                            priceError = if (it.text.toDoubleOrNull() == null || it.text.toDouble() < 0) "价格无效" else null
                         },
                         label = { Text("成交单价 *") },
                         modifier = Modifier.weight(1f),
@@ -99,8 +102,8 @@ fun AddOrderItemDialog(
 
                 // 备注
                 OutlinedTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
+                    value = notesState,
+                    onValueChange = { notesState = it },
                     label = { Text("产品备注 (可选)") },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -109,14 +112,14 @@ fun AddOrderItemDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    val quantity = quantityString.toIntOrNull()
-                    val price = priceString.toDoubleOrNull()
+                    val quantity = quantityState.text.toIntOrNull()
+                    val price = priceState.text.toDoubleOrNull()
                     productError = if (selectedProduct == null) "请选择一个产品" else null
                     quantityError = if (quantity == null || quantity <= 0) "数量必须是正整数" else null
                     priceError = if (price == null || price < 0) "价格无效" else null
 
                     if (productError == null && quantityError == null && priceError == null) {
-                        onConfirm(selectedProduct!!, quantity!!, price!!, notes.ifBlank { null })
+                        onConfirm(selectedProduct!!, quantity!!, price!!, notesState.text.ifBlank { null })
                     }
                 }
             ) { Text("确认添加") }

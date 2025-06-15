@@ -43,6 +43,8 @@ fun AddEditOrderScreen(
     val isEditMode = orderId != null && orderId != -1L
     var showAddOrderItemDialog by remember { mutableStateOf(false) } // 新增状态控制添加产品对话框
 
+    var notesState by remember(uiState.orderId) { mutableStateOf(TextFieldValue(uiState.notes ?: "")) }
+
     // 根据是新增还是编辑模式，在 Composable 首次组合时准备数据
     LaunchedEffect(key1 = orderId) {
         if (isEditMode) {
@@ -163,8 +165,14 @@ fun AddEditOrderScreen(
                     downPayment = uiState.downPayment,
                     onDiscountChange = viewModel::onDiscountChanged,
                     onDownPaymentChange = viewModel::onDownPaymentChanged,
-                    notes = uiState.notes ?: "",
-                    onNotesChange = viewModel::onOrderNotesChanged
+                    notes = notesState,
+                    onNotesChange = { newValue ->
+                        notesState = newValue // UI 层更新自己的状态
+                        // 只有当文本改变时，才通知 ViewModel
+                        if (notesState.text != uiState.notes) {
+                            viewModel.onOrderNotesChanged(newValue.text)
+                        }
+                    }
                 )
             }
 
@@ -312,8 +320,8 @@ fun OrderSummarySection(
     downPayment: Double,
     onDiscountChange: (Double) -> Unit,
     onDownPaymentChange: (Double) -> Unit,
-    notes: String,
-    onNotesChange: (String) -> Unit
+    notes: TextFieldValue,
+    onNotesChange: (TextFieldValue) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("金额与备注", style = MaterialTheme.typography.titleMedium)

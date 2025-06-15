@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.example.manager.data.model.entity.Product
 
@@ -20,14 +21,16 @@ fun EditProductDialog(
     onDismiss: () -> Unit,
     onConfirm: (product: Product) -> Unit // 返回更新后的 Product 对象
 ) {
-    // --- 使用 remember 和 product 的初始值来初始化状态 ---
-    var name by remember(product.id) { mutableStateOf(product.name) }
-    var model by remember(product.id) { mutableStateOf(product.model ?: "") }
-    var category by remember(product.id) { mutableStateOf(product.category ?: "") }
-    var priceString by remember(product.id) { mutableStateOf(product.defaultPrice.toString()) }
-    var specifications by remember(product.id) { mutableStateOf(product.specifications ?: "") }
-    var description by remember(product.id) { mutableStateOf(product.description ?: "") }
+    // --- 使用 TextFieldValue 管理状态，并用 product 的初始值初始化 ---
+    // remember(product.id) 确保当编辑不同的产品时，状态能正确重置
+    var nameState by remember(product.id) { mutableStateOf(TextFieldValue(product.name)) }
+    var modelState by remember(product.id) { mutableStateOf(TextFieldValue(product.model ?: "")) }
+    var categoryState by remember(product.id) { mutableStateOf(TextFieldValue(product.category ?: "")) }
+    var priceStringState by remember(product.id) { mutableStateOf(TextFieldValue(product.defaultPrice.toString())) }
+    var specificationsState by remember(product.id) { mutableStateOf(TextFieldValue(product.specifications ?: "")) }
+    var descriptionState by remember(product.id) { mutableStateOf(TextFieldValue(product.description ?: "")) }
     var isActive by remember(product.id) { mutableStateOf(product.isActive) }
+
 
     // --- 错误状态管理 ---
     var nameError by remember(product.id) { mutableStateOf<String?>(null) }
@@ -40,10 +43,10 @@ fun EditProductDialog(
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 // 各个输入字段，与 AddProductDialog 类似，但 value 使用上面的状态变量
                 OutlinedTextField(
-                    value = name,
+                    value = nameState,
                     onValueChange = {
-                        name = it
-                        nameError = if (it.isBlank()) "产品名称不能为空" else null
+                        nameState = it
+                        nameError = if (it.text.isBlank()) "产品名称不能为空" else null
                     },
                     label = { Text("产品名称 *") },
                     isError = nameError != null,
@@ -53,18 +56,18 @@ fun EditProductDialog(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 OutlinedTextField(
-                    value = model,
-                    onValueChange = { model = it },
+                    value = modelState,
+                    onValueChange = { modelState = it },
                     label = { Text("产品型号") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
                 OutlinedTextField(
-                    value = priceString,
+                    value = priceStringState,
                     onValueChange = {
-                        priceString = it
-                        priceError = if (it.toDoubleOrNull() == null || it.toDouble() < 0) "价格无效" else null
+                        priceStringState = it
+                        priceError = if (it.text.toDoubleOrNull() == null || it.text.toDouble() < 0) "价格无效" else null
                     },
                     label = { Text("默认售价 *") },
                     isError = priceError != null,
@@ -85,18 +88,18 @@ fun EditProductDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    val price = priceString.toDoubleOrNull()
-                    nameError = if (name.isBlank()) "产品名称不能为空" else null
+                    val price = priceStringState.text.toDoubleOrNull()
+                    nameError = if (nameState.text.isBlank()) "产品名称不能为空" else null
                     priceError = if (price == null || price < 0) "价格无效" else null
 
                     if (nameError == null && priceError == null) {
                         val updatedProduct = product.copy( // 使用 copy 保留 id 和 supplierId
-                            name = name.trim(),
-                            model = model.ifBlank { null },
-                            category = category.ifBlank { null },
+                            name = nameState.text.trim(),
+                            model = modelState.text.ifBlank { null },
+                            category = categoryState.text.ifBlank { null },
                             defaultPrice = price!!,
-                            specifications = specifications.ifBlank { null },
-                            description = description.ifBlank { null },
+                            specifications = specificationsState.text.ifBlank { null },
+                            description = descriptionState.text.ifBlank { null },
                             isActive = isActive,
                             updatedAt = System.currentTimeMillis() // 更新时间戳
                         )
