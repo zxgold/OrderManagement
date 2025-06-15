@@ -93,7 +93,8 @@ object DatabaseModule { // 为什么这样定义？
         return database.actionLogDao()
     }
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     fun provideSupplierDao(database: AppDatabase): SupplierDao { // <-- 添加
         return database.supplierDao()
     }

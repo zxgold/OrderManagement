@@ -37,6 +37,10 @@ fun SupplierProductScreen(
     navController: NavController,
     viewModel: SupplierProductViewModel = hiltViewModel()
 ) {
+    // --- 添加探针日志 ---
+    Log.d("SupplierProductScreen", "Composable is being composed/recomposed.")
+    // ----------------------
+
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showAddSupplierDialog by remember { mutableStateOf(false) }
     var showAddProductDialog by remember { mutableStateOf(false) }

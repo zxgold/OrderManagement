@@ -49,6 +49,7 @@ class SupplierProductViewModel @Inject constructor(
     private val storeIdFlow: Flow<Long?> = sessionManager.userSessionFlow.map { it.storeId }
 
     init {
+        Log.i("SupplierProductVM", "ViewModel INSTANCE CREATED AND INITIALIZED.") // 使用一个更醒目的日志
         Log.d("SupplierProductVM", "ViewModel Initialized")
         loadSuppliers()
 

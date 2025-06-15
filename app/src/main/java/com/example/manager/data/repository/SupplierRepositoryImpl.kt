@@ -4,6 +4,7 @@ import com.example.manager.data.model.entity.Supplier
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
+
 @Singleton
 class SupplierRepositoryImpl @Inject constructor(
     private val supplierDao: SupplierDao

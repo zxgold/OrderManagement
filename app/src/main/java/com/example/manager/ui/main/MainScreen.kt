@@ -182,7 +182,6 @@ fun MainScreen(
                 AddEditOrderScreen(orderId = orderId, navController = bottomSheetNavController)
             }
 
-
             // MainScreen.kt -> NavHost
             composable(AppDestinations.SUPPLIER_PRODUCT_ROUTE) {
                 SupplierProductScreen(navController = bottomSheetNavController) // 传递 NavController

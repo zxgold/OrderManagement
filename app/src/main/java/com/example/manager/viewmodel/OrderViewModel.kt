@@ -239,11 +239,15 @@ class OrderViewModel @Inject constructor(
 
     private fun loadProductsForSelection(storeId: Long) {
         viewModelScope.launch {
+            _addEditOrderUiState.update { it.copy(isLoadingProducts = true) }
+            // 使用 Flow 并取第一个结果，或者直接将 availableProducts 也变成一个 StateFlow
+            // 为了保持现有结构，我们先用 .first()
             try {
-                val products = productRepository.getAllActiveProductsBySupplierIdFlow(storeId)
+                // Repository 的方法返回 Flow，我们取其第一个发出的值
+                val products = productRepository.getAllActiveProductsByStoreIdFlow(storeId).first()
                 _addEditOrderUiState.update { it.copy(availableProducts = products, isLoadingProducts = false) }
             } catch (e: Exception) {
-                _addEditOrderUiState.update { it.copy(isLoadingProducts = false, errorMessage = "加载产品列表失败") }
+                _addEditOrderUiState.update { it.copy(isLoadingProducts = false, errorMessage = "加载产品列表失败: ${e.localizedMessage}") }
             }
         }
     }
@@ -329,21 +333,31 @@ class OrderViewModel @Inject constructor(
                 createdAt = currentState.orderId?.let { orderRepository.getOrderByIdAndStoreId(it, storeId)?.createdAt } ?: System.currentTimeMillis() // 编辑时保留原创建时间
             )
 
-            val orderItemsToSave = currentState.tempOrderItems.map { tempItem ->
+            val orderItemsToSave = currentState.tempOrderItems.mapNotNull { tempItem ->
+                // 使用 mapNotNull，如果找不到产品，则直接跳过该订单项
+                val product = tempItem.productId?.let { productRepository.getProductById(it) }
+                if (product == null && tempItem.productId != null) {
+                    Log.w("OrderViewModel", "Could not find product with ID ${tempItem.productId} for order item snapshot. Skipping.")
+                    return@mapNotNull null // 如果找不到产品，则不包含此订单项
+                }
                 OrderItem(
-                    // id 会自动生成或由 insertOrUpdateOrderItems 处理
-                    orderId = 0L, // 这个会在 Repository 中被正确设置
+                    orderId = 0L,
                     productId = tempItem.productId,
-                    productCategory = productRepository.getProductByIdAndStoreId(tempItem.productId ?: -1, storeId)?.category, // 快照
+                    // 从获取到的 product 对象或 tempItem 中获取快照信息
+                    productCategory = product?.category,
                     productName = tempItem.productName,
-                    productModel = tempItem.productId?.let { productRepository.getProductByIdAndStoreId(it, storeId)?.model }, // 快照
+                    productModel = product?.model,
                     quantity = tempItem.quantity,
                     actualUnitPrice = tempItem.actualUnitPrice,
                     itemTotalAmount = tempItem.itemTotalAmount,
-                    status = OrderItemStatus.NOT_ORDERED, // 新增项的默认状态
+                    status = OrderItemStatus.NOT_ORDERED,
                     notes = tempItem.notes
-                    // 其他字段如 dimensions, color 可以从 Product 获取或手输
                 )
+            }
+
+            if (currentState.tempOrderItems.size != orderItemsToSave.size) {
+                _addEditOrderUiState.update { it.copy(isSaving = false, errorMessage = "部分产品信息已失效，请重新添加产品。") }
+                return@launch
             }
 
             val result: Result<Long>
