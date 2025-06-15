@@ -12,12 +12,13 @@ import com.example.manager.data.model.typeconverter.Converters // 导入 Convert
 // 如果你之前的版本是 1，那么现在至少应该是 2。
 // 由于我们做了大量结构改动 (V3 设计)，可以跳跃式增加，比如直接用 3，
 // 关键是 **必须比之前的版本号大**。
-private const val DATABASE_VERSION = 8 // <--- !! 修改为你确定的新版本号 !!
+private const val DATABASE_VERSION = 9 // <--- !! 修改为你确定的新版本号 !!
 
 @Database(
     entities = [
         // --- 列出 V3 版本包含的所有 Entity 类 ---
         Store::class,
+        Supplier::class,
         Staff::class,
         Customer::class,
         Product::class,
@@ -37,6 +38,7 @@ abstract class AppDatabase : RoomDatabase() {
 
     // --- 提供获取每个 DAO 实例的抽象方法 ---
     abstract fun storeDao(): StoreDao
+    abstract fun supplierDao(): SupplierDao
     abstract fun staffDao(): StaffDao
     abstract fun customerDao(): CustomerDao
     abstract fun productDao(): ProductDao
@@ -46,6 +48,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun followUpDao(): FollowUpDao
     abstract fun ledgerEntryDao(): LedgerEntryDao
     abstract fun actionLogDao(): ActionLogDao
+
 
     // --- Companion Object (通常用于提供单例实例，结合 Hilt 会更简单) ---
     // 暂时可以不写 getInstance() 方法，Hilt 会帮我们管理实例创建

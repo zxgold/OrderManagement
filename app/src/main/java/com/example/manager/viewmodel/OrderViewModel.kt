@@ -240,7 +240,7 @@ class OrderViewModel @Inject constructor(
     private fun loadProductsForSelection(storeId: Long) {
         viewModelScope.launch {
             try {
-                val products = productRepository.getAllActiveProductsByStoreId(storeId)
+                val products = productRepository.getAllActiveProductsBySupplierIdFlow(storeId)
                 _addEditOrderUiState.update { it.copy(availableProducts = products, isLoadingProducts = false) }
             } catch (e: Exception) {
                 _addEditOrderUiState.update { it.copy(isLoadingProducts = false, errorMessage = "加载产品列表失败") }

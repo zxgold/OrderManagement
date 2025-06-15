@@ -3,6 +3,7 @@ package com.example.manager.data.repository
 import android.database.sqlite.SQLiteConstraintException
 import com.example.manager.data.dao.ProductDao
 import com.example.manager.data.model.entity.Product
+import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -37,23 +38,10 @@ class ProductRepositoryImpl @Inject constructor(
         return productDao.deleteProduct(product)
     }
 
-    override suspend fun getProductByIdAndStoreId(id: Long, storeId: Long): Product? {
-        return productDao.getProductByIdAndStoreId(id, storeId)
+    override fun getAllActiveProductsBySupplierIdFlow(supplierId: Long): Flow<List<Product>> {
+        return productDao.getAllActiveProductsBySupplierIdFlow(supplierId)
     }
 
-    override suspend fun getAllActiveProductsByStoreId(storeId: Long): List<Product> {
-        return productDao.getAllActiveProductsByStoreId(storeId)
-    }
 
-    override suspend fun searchActiveProductsByStoreId(query: String, storeId: Long): List<Product> {
-        return productDao.searchActiveProductsByStoreId(query, storeId)
-    }
 
-    override suspend fun getAllCategoriesByStoreId(storeId: Long): List<String> {
-        return productDao.getAllCategoriesByStoreId(storeId)
-    }
-
-    override suspend fun getProductByNameAndModel(storeId: Long, name: String, model: String?): Product? {
-        return productDao.getProductByNameAndModel(storeId, name, model)
-    }
 }
