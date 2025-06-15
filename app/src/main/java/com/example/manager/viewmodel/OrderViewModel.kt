@@ -62,6 +62,7 @@ data class AddEditOrderUiState(
     // val availableCustomers: List<Customer> = emptyList(), // 用于客户选择
     val availableProducts: List<Product> = emptyList(),   // 用于产品选择
 
+    val isLoadingInitialData: Boolean = false, // 用于初始加载（例如加载产品和已有订单信息）
     val isLoadingCustomers: Boolean = false,
     val isLoadingProducts: Boolean = false,
     val isSaving: Boolean = false,
@@ -171,7 +172,7 @@ class OrderViewModel @Inject constructor(
 
     // UI 调用这个方法来设置选中的客户
     fun onCustomerSelected(customer: Customer) {
-        _addEditOrderUiState.update { it.copy(selectedCustomer = customer) }
+        _addEditOrderUiState.update { it.copy(selectedCustomer = if(customer.id == -1L) null else customer) }
         // 选择后，清空搜索词，并因此清空搜索结果列表
         _customerSearchQuery.value = ""
     }
