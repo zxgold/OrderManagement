@@ -167,6 +167,31 @@ class WorkOrderDetailViewModel @Inject constructor(
         refreshTrigger.value++
     }
 
+    // 这个方法接收新的备注，调用 orderRepository.updateOrderItem，并处理结果。
+    // 成功后调用 manualRefresh() 来确保 UI 重新加载并显示最新的备注。
+    fun updateOrderItemNotes(notes: String?) {
+        val currentWorkItem = _uiState.value.workOrderItem ?: return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isUpdatingStatus = true) } // 复用 isUpdatingStatus
+            try {
+                // 使用 OrderItem 的 copy 方法创建更新后的对象
+                val itemToUpdate = currentWorkItem.orderItem.copy(notes = notes)
+                val result = orderRepository.updateOrderItem(itemToUpdate) // Repository 需要有 updateOrderItem 方法
+                result.onSuccess {
+                    _uiState.update { it.copy(updateSuccessMessage = "备注已更新") }
+                    manualRefresh() // 手动触发刷新以显示最新数据
+                }
+                    .onFailure { _uiState.update { it.copy(errorMessage = "备注更新失败") } }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "更新备注时出错") }
+            } finally {
+                _uiState.update { it.copy(isUpdatingStatus = false) }
+            }
+        }
+    }
+
+
     fun errorShown() { _uiState.update { it.copy(errorMessage = null) } }
     fun successMessageShown() { _uiState.update { it.copy(updateSuccessMessage = null) } }
 }

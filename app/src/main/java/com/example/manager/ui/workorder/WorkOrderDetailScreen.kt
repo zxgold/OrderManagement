@@ -7,6 +7,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -33,6 +34,24 @@ fun WorkOrderDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var statusToUpdate by remember { mutableStateOf<OrderItemStatus?>(null) }//用于控制确认对话框的状态
+    val snackbarHostState = remember { SnackbarHostState() } // **确保有 snackbarHostState**
+
+    // --- 处理加载、详情、成功、错误消息 ---
+    // 我们将 `key1` 设置为整个 `uiState`。
+    // 这意味着只要 `uiState` 对象中的任何一个字段发生变化（包括 `errorMessage` 或 `updateSuccessMessage`），
+    // 这个 `LaunchedEffect` 就会重新运行，检查并显示相应的 `Snackbar`。
+    LaunchedEffect(key1 = uiState) {
+        // 处理错误消息
+        uiState.errorMessage?.let { message ->
+            snackbarHostState.showSnackbar(message = message, duration = SnackbarDuration.Short)
+            viewModel.errorShown() // 通知 ViewModel 错误已被显示
+        }
+        // 处理成功消息
+        uiState.updateSuccessMessage?.let { message ->
+            snackbarHostState.showSnackbar(message = message, duration = SnackbarDuration.Short)
+            viewModel.successMessageShown() // 通知 ViewModel 成功消息已被显示
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -71,6 +90,40 @@ fun WorkOrderDetailScreen(
                 )
 
                 // TODO: 到库备注 UI
+
+                // 只有当状态为“已到库”或之后时，才显示备注区
+                if (workOrderItem.orderItem.status >= OrderItemStatus.IN_STOCK) {
+                    var showEditNotesDialog by remember { mutableStateOf(false) } // 控制备注编辑对话框
+
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text("到库备注", style = MaterialTheme.typography.titleLarge)
+                    Card(
+                        modifier = Modifier.fillMaxWidth().clickable { showEditNotesDialog = true }, // 点击卡片即可编辑
+                        elevation = CardDefaults.cardElevation(2.dp)
+                    ) {
+                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = workOrderItem.orderItem.notes ?: "无到库备注信息，点击添加",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Icon(Icons.Filled.Edit, contentDescription = "编辑备注")
+                        }
+                    }
+
+                    // --- 备注编辑对话框 ---
+                    if (showEditNotesDialog) {
+                        EditNotesDialog(
+                            initialNotes = workOrderItem.orderItem.notes ?: "",
+                            onDismiss = { showEditNotesDialog = false },
+                            onConfirm = { newNotes ->
+                                viewModel.updateOrderItemNotes(newNotes)
+                                showEditNotesDialog = false
+                            }
+                        )
+                    }
+                }
+
             }
         } else {
             // ... 显示错误或未找到信息 ...
@@ -92,9 +145,15 @@ fun WorkOrderDetailScreen(
                         viewModel.updateStatus(newStatus) // **在这里调用 ViewModel 的方法**
                         // TODO：立即更新节点颜色
                         statusToUpdate = null // 关闭对话框
-                    }
+                    },
+                    enabled = !uiState.isUpdatingStatus // **当正在更新时，禁用按钮**
                 ) {
-                    Text("确认更新")
+                    if (uiState.isUpdatingStatus) {
+                        // **正在更新时，显示加载圈**
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    } else {
+                        Text("确认更新")
+                    }
                 }
             },
             dismissButton = {
@@ -174,4 +233,36 @@ fun TimelineNode(isCompleted: Boolean, isCurrent: Boolean, isLast: Boolean) {
             }
         }
     }
+}
+
+// EditNotesDialog.kt
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditNotesDialog(
+    initialNotes: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String?) -> Unit
+) {
+    var notes by remember { mutableStateOf(initialNotes) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("编辑到库备注") },
+        text = {
+            OutlinedTextField(
+                value = notes,
+                onValueChange = { notes = it },
+                modifier = Modifier.fillMaxWidth().height(150.dp), // 给备注区更多空间
+                label = { Text("备注内容") }
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(notes.ifBlank { null }) }) {
+                Text("保存")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("取消") }
+        }
+    )
 }
