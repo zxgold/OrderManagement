@@ -93,5 +93,10 @@ data class OrderItem(
     val installedAt: Long? = null,
 
     @ColumnInfo(name = "notes")
-    val notes: String? = null
+    val notes: String? = null,
+
+    @ColumnInfo(name = "is_customized") // **新增：是否为定制品**
+    val isCustomized: Boolean = false
+
+
 )

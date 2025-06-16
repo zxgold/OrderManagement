@@ -7,6 +7,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,6 +32,7 @@ fun WorkOrderDetailScreen(
     viewModel: WorkOrderDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var statusToUpdate by remember { mutableStateOf<OrderItemStatus?>(null) }//用于控制确认对话框的状态
 
     Scaffold(
         topBar = {
@@ -64,7 +66,7 @@ fun WorkOrderDetailScreen(
                     logs = uiState.statusLogs,
                     staffNames = uiState.staffNames,
                     onStatusClick = { newStatus ->
-                        viewModel.updateStatus(newStatus) // 点击可更新的节点时调用
+                        statusToUpdate = newStatus // 点击可更新的节点时调用
                     }
                 )
 
@@ -74,6 +76,35 @@ fun WorkOrderDetailScreen(
             // ... 显示错误或未找到信息 ...
         }
     }
+
+    // --- 状态更新确认对话框 ---
+    statusToUpdate?.let { newStatus -> // 当 statusToUpdate 不为 null 时显示
+        AlertDialog(
+            onDismissRequest = { statusToUpdate = null }, // 点击外部或返回键时关闭
+            icon = { Icon(Icons.Filled.Info, contentDescription = "确认信息") }, // 添加一个图标
+            title = { Text("确认状态变更") },
+            text = {
+                Text("确定要将工单状态更新为 “${newStatus.name}” 吗？") // TODO: 本地化
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.updateStatus(newStatus) // **在这里调用 ViewModel 的方法**
+                        // TODO：立即更新节点颜色
+                        statusToUpdate = null // 关闭对话框
+                    }
+                ) {
+                    Text("确认更新")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { statusToUpdate = null }) { // 点击取消按钮
+                    Text("取消")
+                }
+            }
+        )
+    }
+    // ---------------------------------
 }
 
 @Composable

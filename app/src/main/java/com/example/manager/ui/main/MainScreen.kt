@@ -189,10 +189,6 @@ fun MainScreen(
                 SupplierProductScreen(navController = bottomSheetNavController) // 传递 NavController
             }
 
-            composable(AppDestinations.WORK_ORDER_LIST_ROUTE) {
-                WorkOrderListScreen(navController = bottomSheetNavController)
-            }
-
             composable(
                 route = AppDestinations.WORK_ORDER_DETAIL_ROUTE_TEMPLATE,
                 arguments = listOf(navArgument(AppDestinations.WORK_ORDER_DETAIL_ARG_ID) {
@@ -213,6 +209,13 @@ fun MainScreen(
                     // 处理 ID 无效的情况
                     Text("错误：无效的工单ID。")
                 }
+            }
+
+            composable(AppDestinations.WORK_ORDER_LIST_ROUTE) { navBackStackEntry -> // <-- 从 composable lambda 获取
+                WorkOrderListScreen(
+                    navController = bottomSheetNavController,
+                    navBackStackEntry = navBackStackEntry // <-- 传递给屏幕
+                )
             }
 
         }

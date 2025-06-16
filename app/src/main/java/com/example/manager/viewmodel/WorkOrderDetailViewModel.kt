@@ -138,6 +138,8 @@ class WorkOrderDetailViewModel @Inject constructor(
                     .onSuccess { success ->
                         if (success) {
                             Log.d("WorkOrderDetailVM", "Status updated successfully to $newStatus")
+                            // **手动调用一次加载方法来刷新工单详情**
+                            loadWorkOrderItemDetails() // 这会获取最新的 OrderItem 并更新 _uiState
                             _uiState.update { it.copy(updateSuccessMessage = "状态已更新为: ${newStatus.name}") }
 
                             if (newStatus == OrderItemStatus.INSTALLED) {

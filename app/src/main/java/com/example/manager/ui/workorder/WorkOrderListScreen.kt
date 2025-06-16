@@ -1,5 +1,6 @@
 package com.example.manager.ui.workorder
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -8,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -17,17 +19,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import com.example.manager.data.model.enums.OrderItemStatus
 import com.example.manager.data.model.uimodel.WorkOrderItem
+import com.example.manager.ui.navigation.AppDestinations
 import com.example.manager.viewmodel.WorkOrderViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkOrderListScreen(
     navController: NavController,
-    viewModel: WorkOrderViewModel = hiltViewModel()
+    viewModel: WorkOrderViewModel = hiltViewModel(),
+    navBackStackEntry: NavBackStackEntry // <-- 接收 NavBackStackEntry
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -38,6 +46,23 @@ fun WorkOrderListScreen(
             // TODO: Add viewModel.errorShown() if needed
         }
     }
+
+    // --- 当屏幕重新变为 RESUMED 状态时，重新加载数据 ---
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                Log.d("WorkOrderListScreen", "Screen resumed, reloading work orders.")
+                viewModel.loadAllWorkOrders()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+    // ----------------------------------------------------
+
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -76,8 +101,7 @@ fun WorkOrderListScreen(
                         WorkOrderItemCard(
                             item = workOrderItem,
                             onClick = {
-                                // TODO: 导航到工单详情页，传递 orderItemId
-                                // navController.navigate(AppDestinations.workOrderDetailRoute(workOrderItem.orderItem.id))
+                                navController.navigate(AppDestinations.workOrderDetailRoute(workOrderItem.orderItem.id))
                             }
                         )
                     }
@@ -130,3 +154,4 @@ fun getOrderItemStatusColor(status: OrderItemStatus): Color = when (status) {
     OrderItemStatus.INSTALLING -> Color(0xFFFFA000) // Orange
     OrderItemStatus.INSTALLED -> Color(0xFF43A047) // Green
 }
+

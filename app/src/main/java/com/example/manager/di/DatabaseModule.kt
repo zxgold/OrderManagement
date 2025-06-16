@@ -2,6 +2,8 @@ package com.example.manager.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.manager.data.dao.*
 import com.example.manager.data.db.AppDatabase
 import dagger.Module
@@ -9,6 +11,10 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import javax.inject.Singleton
 
 @Module // 标记这是一个Hilt Module
@@ -32,7 +38,31 @@ object DatabaseModule { // 为什么这样定义？
             "order_manager_db" // 数据库文件名，保持一致
         )
             .fallbackToDestructiveMigration() // <-- 临时方案，开发阶段用，发布前必须换成 Migration
+            .addCallback(object : RoomDatabase.Callback() {
+                override fun onCreate(db: SupportSQLiteDatabase) {
+                    super.onCreate(db)
+
+                    // --- 手动创建部分唯一索引 ---
+                    db.execSQL("""
+                    CREATE UNIQUE INDEX IF NOT EXISTS `index_inventory_items_standard_stock_unique` 
+                    ON `inventory_items` (`store_id`, `product_id`) 
+                    WHERE `is_standard_stock` = 1
+                """)
+                    // -----------------------------
+
+                    /*
+                    // 启动协程填充数据
+                    val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+                    scope.launch {
+                        // ... 你的数据填充逻辑 ...
+                    }
+
+                     */
+                }
+            })
             .build()
+
+
     }
 
     // --- 提供各个DAO实例 ---

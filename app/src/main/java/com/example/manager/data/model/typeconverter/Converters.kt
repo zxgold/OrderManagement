@@ -3,6 +3,7 @@ package com.example.manager.data.model.typeconverter
 import androidx.room.TypeConverter
 import com.example.manager.data.model.enums.ActionLogType
 import com.example.manager.data.model.enums.FollowUpStatus
+import com.example.manager.data.model.enums.InventoryItemStatus
 import com.example.manager.data.model.enums.LedgerEntryType
 import com.example.manager.data.model.enums.OrderItemStatus
 import com.example.manager.data.model.enums.OrderStatus
@@ -119,6 +120,20 @@ object Converters { // 使用 object 使方法静态可用
         } catch (e: Exception) {
             // 如果发生任何预料之外的错误（虽然 toLongOrNull 应该处理了数字格式问题）
             null // 或者返回 emptyList()
+        }
+    }
+
+    @TypeConverter
+    fun fromInventoryItemStatus(value: InventoryItemStatus?): String? {
+        return value?.name
+    }
+
+    @TypeConverter
+    fun toInventoryItemStatus(value: String?): InventoryItemStatus? {
+        return try {
+            value?.let { enumValueOf<InventoryItemStatus>(it) }
+        } catch (e: IllegalArgumentException) {
+            null // 或返回默认值
         }
     }
 
