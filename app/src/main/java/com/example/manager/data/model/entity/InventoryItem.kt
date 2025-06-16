@@ -28,10 +28,12 @@ import com.example.manager.data.model.typeconverter.Converters
         // 这个唯一索引对于区分标准化和定制化库存非常重要
         // 但如果标准化库存也想按批次入库（而不是简单增减数量），这个模型还需要再调整
         // 目前这个模型：每个店铺对同一种产品，只有一条“标准化库存”记录
-        Index(value = ["is_standard_stock"]),
+        // **为常用的查询和外键列创建索引**
         Index(value = ["store_id"]),
         Index(value = ["product_id"]),
-        Index(value = ["reserved_for_order_item_id"],  unique = true) // 确保一个订单项只预定一个库存项
+        Index(value = ["reserved_for_order_item_id"], unique = true),
+        // **新增一个组合索引，用于快速查找特定店铺的特定产品库存**
+        Index(value = ["store_id", "product_id"])
     ]
 )
 

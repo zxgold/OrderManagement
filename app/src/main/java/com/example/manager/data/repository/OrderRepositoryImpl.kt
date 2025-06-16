@@ -123,26 +123,32 @@ class OrderRepositoryImpl @Inject constructor(
     ): Result<Boolean> {
         return try {
             appDatabase.withTransaction {
+                // 1. 获取要更新的订单项
                 val orderItem = orderItemDao.getOrderItemById(orderItemId)
-                    ?: throw NoSuchElementException("OrderItem not found with ID: $orderItemId")
+                    ?: throw NoSuchElementException("工单 (ID: $orderItemId) 不存在。")
 
                 val oldStatus = orderItem.status
-
-                // 只在状态实际改变时才执行操作
                 if (newStatus == oldStatus) {
                     Log.d("OrderRepoImpl", "Status is already $newStatus. No update performed.")
                     return@withTransaction // 提前退出事务
                 }
 
-                // 更新订单项状态
-                // 这里应该更新 orderItem 表，而不是 order 表
+                // --- 业务逻辑校验 ---
+                // 例如，只有 IN_STOCK 状态的才能变为 INSTALLED
+                if (newStatus == OrderItemStatus.INSTALLED && oldStatus != OrderItemStatus.IN_STOCK) {
+                    throw IllegalStateException("只有‘已到库’状态的产品才能进行安装。")
+                }
+                // ... 未来可以添加更多状态流转的校验规则 ...
+
+
+                // 2. 更新订单项状态
                 orderItemDao.updateOrderItem(orderItem.copy(
                     status = newStatus,
                     statusLastUpdateAt = System.currentTimeMillis(),
                     statusLastUpdateStaffId = staffId
                 ))
 
-                // 插入状态变更日志
+                // 3. 插入状态变更日志
                 orderItemStatusLogDao.insertLog(
                     OrderItemStatusLog(
                         orderItemId = orderItemId,
@@ -151,28 +157,47 @@ class OrderRepositoryImpl @Inject constructor(
                     )
                 )
 
-                // --- 库存联动逻辑 ---
+                // 4. --- 库存联动逻辑 (使用新的 Repository 方法) ---
                 if (orderItem.productId != null) {
-                    // 1. 入库：从“物流中”或更早的状态变为“已到库”
-                    // 确保不会重复入库
+                    // a. 入库：从“物流中”或更早的状态变为“已到库”
                     if (newStatus == OrderItemStatus.IN_STOCK && oldStatus < OrderItemStatus.IN_STOCK) {
-                        Log.d("OrderRepoImpl", "Increasing stock for product ${orderItem.productId} by ${orderItem.quantity}")
-                        // **调用 inventoryRepository 的方法**
-                        inventoryRepository.increaseStock(storeId, orderItem.productId, orderItem.quantity)
+                        Log.d("OrderRepoImpl", "Increasing stock for product ${orderItem.productId}, customized: ${orderItem.isCustomized}")
+                        inventoryRepository.increaseStock(
+                            storeId = storeId,
+                            productId = orderItem.productId,
+                            amount = orderItem.quantity, // 对于定制品，这里应为1
+                            isStandard = !orderItem.isCustomized, // 标准品入通用库存
+                            customization = if(orderItem.isCustomized) "订单 ${orderItem.orderId} 定制" else null,
+                            reservedForOrderItemId = if(orderItem.isCustomized) orderItem.id else null // 定制品与订单项ID绑定
+                        )
                     }
-                    // 2. 出库：从“已到库”变为“已安装”
+                    // b. 出库：从“已到库”变为“已安装”
                     else if (newStatus == OrderItemStatus.INSTALLED && oldStatus == OrderItemStatus.IN_STOCK) {
-                        Log.d("OrderRepoImpl", "Decreasing stock for product ${orderItem.productId} by ${orderItem.quantity}")
-                        // **调用 inventoryRepository 的方法**
-                        val decreaseResult = inventoryRepository.decreaseStock(storeId, orderItem.productId, orderItem.quantity)
+                        Log.d("OrderRepoImpl", "Decreasing stock for product ${orderItem.productId}, customized: ${orderItem.isCustomized}")
+
+                        val decreaseResult = if (orderItem.isCustomized) {
+                            // 对定制品，我们通过其预定的订单项ID来出库（更新状态为SOLD）
+                            inventoryRepository.decreaseCustomizedStockByOrderItemId(orderItem.id)
+                        } else {
+                            // 对标准品，我们减少通用库存的数量
+                            inventoryRepository.decreaseStandardStock(storeId, orderItem.productId, orderItem.quantity)
+                        }
+
                         if (decreaseResult.isFailure) {
-                            // 如果减库存失败（库存不足），抛出异常以回滚整个事务
-                            throw IllegalStateException("库存不足，无法将产品(ID: ${orderItem.productId})状态更新为已安装。")
+                            // 如果减库存失败（例如库存不足），抛出异常以回滚整个事务
+                            throw IllegalStateException(decreaseResult.exceptionOrNull()?.message ?: "库存操作失败")
                         }
                     }
                 }
 
-                // TODO: 检查并更新订单主状态的逻辑
+                // 5. 检查并更新订单主状态
+                // 如果当前订单项已安装，检查整个订单是否已完成
+                if (newStatus == OrderItemStatus.INSTALLED) {
+                    val completed = checkAndCompleteOrder(orderItem.orderId, storeId)
+                    if (completed) {
+                        Log.i("OrderRepoImpl", "Order ID ${orderItem.orderId} auto-completed within transaction.")
+                    }
+                }
             }
             Result.success(true)
         } catch (e: Exception) {

@@ -3,6 +3,7 @@ package com.example.manager.data.repository
 import android.util.Log
 import com.example.manager.data.dao.InventoryItemDao
 import com.example.manager.data.model.entity.InventoryItem
+import com.example.manager.data.model.enums.InventoryItemStatus
 import com.example.manager.data.model.uimodel.InventoryItemWithProductInfo
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
@@ -17,47 +18,60 @@ class InventoryRepositoryImpl @Inject constructor(
         return inventoryItemDao.getInventoryItemsWithProductInfoFlow(storeId)
     }
 
-    override suspend fun increaseStock(storeId: Long, productId: Long, amount: Int) {
+    override suspend fun increaseStock(
+        storeId: Long,
+        productId: Long,
+        amount: Int,
+        isStandard: Boolean,
+        customization: String?,
+        reservedForOrderItemId: Long?
+    ) {
         try {
-            val existing = inventoryItemDao.findByStoreAndProduct(storeId, productId)
-            if (existing == null) {
-                inventoryItemDao.insert(InventoryItem(storeId = storeId, productId = productId, quantity = amount, lastUpdatedAt = System.currentTimeMillis()))
-                Log.d("InventoryRepo", "New inventory item created for product ID $productId with quantity $amount.")
+            if (isStandard) {
+                val existing = inventoryItemDao.findStandardStockByStoreAndProduct(storeId, productId)
+                if (existing == null) {
+                    inventoryItemDao.insert(InventoryItem(storeId = storeId, productId = productId, quantity = amount, isStandardStock = true, status = InventoryItemStatus.AVAILABLE))
+                } else {
+                    inventoryItemDao.update(existing.copy(quantity = existing.quantity + amount, lastUpdatedAt = System.currentTimeMillis()))
+                }
             } else {
-                val updatedItem = existing.copy(
-                    quantity = existing.quantity + amount,
+                inventoryItemDao.insert(InventoryItem(
+                    storeId = storeId,
+                    productId = productId,
+                    quantity = 1,
+                    isStandardStock = false,
+                    customizationDetails = customization,
+                    reservedForOrderItemId = reservedForOrderItemId,
+                    status = if (reservedForOrderItemId != null) InventoryItemStatus.RESERVED else InventoryItemStatus.AVAILABLE,
                     lastUpdatedAt = System.currentTimeMillis()
-                )
-                inventoryItemDao.update(updatedItem)
-                Log.d("InventoryRepo", "Increased stock for product ID $productId. New quantity: ${updatedItem.quantity}")
+                ))
             }
         } catch (e: Exception) {
-            Log.e("InventoryRepo", "Error increasing stock for product ID $productId", e)
-            // 在 Repository 中，我们可以只记录错误，或者向上抛出，或者返回 Result
-            // 这里我们假设它是一个后台操作，记录错误即可
+            Log.e("InventoryRepo", "Error increasing stock", e)
         }
     }
 
-    override suspend fun decreaseStock(storeId: Long, productId: Long, amount: Int): Result<Unit> {
+    override suspend fun decreaseStandardStock(storeId: Long, productId: Long, amount: Int): Result<Unit> {
         return try {
-            val existing = inventoryItemDao.findByStoreAndProduct(storeId, productId)
+            val existing = inventoryItemDao.findStandardStockByStoreAndProduct(storeId, productId)
             if (existing != null && existing.quantity >= amount) {
-                val updatedItem = existing.copy(
-                    quantity = existing.quantity - amount,
-                    lastUpdatedAt = System.currentTimeMillis()
-                )
-                inventoryItemDao.update(updatedItem)
-                Log.d("InventoryRepo", "Decreased stock for product ID $productId. New quantity: ${updatedItem.quantity}")
-                Result.success(Unit) // 操作成功
+                inventoryItemDao.update(existing.copy(quantity = existing.quantity - amount, lastUpdatedAt = System.currentTimeMillis()))
+                Result.success(Unit)
             } else {
-                // 库存不足或库存项不存在
-                val reason = if (existing == null) "库存项不存在" else "库存不足 (需要 $amount, 仅有 ${existing.quantity})"
-                Log.w("InventoryRepo", "Failed to decrease stock for product ID $productId. Reason: $reason")
-                Result.failure(IllegalStateException("库存不足或库存项不存在")) // 操作失败
+                Result.failure(IllegalStateException("标准化产品库存不足"))
             }
-        } catch (e: Exception) {
-            Log.e("InventoryRepo", "Error decreasing stock for product ID $productId", e)
-            Result.failure(e)
-        }
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    override suspend fun decreaseCustomizedStockByOrderItemId(orderItemId: Long): Result<Unit> {
+        return try {
+            val existing = inventoryItemDao.findByOrderItemId(orderItemId)
+            if (existing != null && !existing.isStandardStock && existing.status != InventoryItemStatus.SOLD) {
+                inventoryItemDao.update(existing.copy(status = InventoryItemStatus.SOLD, lastUpdatedAt = System.currentTimeMillis()))
+                Result.success(Unit)
+            } else {
+                Result.failure(IllegalStateException("找不到为该订单项预定的库存，或该库存已售出"))
+            }
+        } catch (e: Exception) { Result.failure(e) }
     }
 }
