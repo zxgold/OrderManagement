@@ -64,24 +64,39 @@ class InventoryViewModel @Inject constructor(
             }
 
             // 启动对库存列表的响应式订阅，它会根据 selectedSupplier 的变化而变化
-            launch {
+            viewModelScope.launch {
                 _uiState
                     .map { it.selectedSupplier }
                     .distinctUntilChanged()
                     .flatMapLatest { supplier ->
                         _uiState.update { it.copy(isLoadingInventory = true) }
+                        val storeId = sessionManager.userSessionFlow.firstOrNull()?.storeId
+                        if (storeId == null) {
+                            // 如果没有 storeId，返回一个包含错误的 Flow
+                            return@flatMapLatest flow {
+                                emit(emptyList<InventoryItemWithProductInfo>())
+                                _uiState.update { it.copy(isLoadingInventory = false, errorMessage = "无法获取店铺信息") }
+                            }
+                        }
+
                         if (supplier != null) {
-                            // TODO: 这里需要一个按 supplierId 筛选库存的方法
-                            // 暂时我们先加载所有库存，后续再优化查询
-                            inventoryRepository.getInventoryItemsWithProductInfoFlow(storeId)
+                            // **如果选中了特定供应商，调用按供应商筛选的方法**
+                            Log.d("InventoryVM", "Loading inventory for specific supplier: ${supplier.name}")
+                            inventoryRepository.getInventoryItemsBySupplierFlow(supplier.id)
                         } else {
-                            inventoryRepository.getInventoryItemsWithProductInfoFlow(storeId) // 如果没选供应商，显示全部库存
+                            // **如果 selectedSupplier 为 null (即选中了“所有供应商”)，调用获取全部的方法**
+                            Log.d("InventoryVM", "Loading inventory for all suppliers in store.")
+                            inventoryRepository.getInventoryItemsWithProductInfoFlow(storeId)
                         }
                     }
-                    .catch { e -> _uiState.update { it.copy(isLoadingInventory = false, errorMessage = "加载库存失败") } }
+                    .catch { e ->
+                        Log.e("InventoryVM", "Error loading inventory.", e)
+                        _uiState.update { it.copy(isLoadingInventory = false, errorMessage = "加载库存失败: ${e.message}") }
+                    }
                     .collect { items ->
                         _uiState.update { it.copy(inventoryItems = items, isLoadingInventory = false) }
                     }
+
             }
         }
     }
