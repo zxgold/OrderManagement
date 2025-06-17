@@ -71,8 +71,8 @@ fun AppNavigation(
                 }
             }
             is NavigationEvent.GoToMainApp -> {
-                if (currentRoute != AppDestinations.MAIN_APP_ROUTE) {
-                    navController.navigate(AppDestinations.MAIN_APP_ROUTE) {
+                if (currentRoute != AppDestinations.MAIN_APP_HOST_ROUTE) {
+                    navController.navigate(AppDestinations.MAIN_APP_HOST_ROUTE) {
                         popUpTo(0) { inclusive = true }
                         launchSingleTop = true
                     }
@@ -93,9 +93,9 @@ fun AppNavigation(
 
     NavHost(
         navController = navController,
-        startDestination = AppDestinations.LOADING_SCREEN_ROUTE // 始终从加载屏幕开始
+        startDestination = AppDestinations.LOADING_ROUTE // 始终从加载屏幕开始
     ) {
-        composable(AppDestinations.LOADING_SCREEN_ROUTE) {
+        composable(AppDestinations.LOADING_ROUTE) {
             // 一个简单的加载屏幕
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
@@ -140,7 +140,7 @@ fun AppNavigation(
             )
         }
 
-        composable(AppDestinations.MAIN_APP_ROUTE) { // 新增 MainScreen 的路由
+        composable(AppDestinations.MAIN_APP_HOST_ROUTE) { // 新增 MainScreen 的路由
             MainScreen(mainNavController = navController, authViewModel = authViewModel) // 传递上层 navController
         }
 

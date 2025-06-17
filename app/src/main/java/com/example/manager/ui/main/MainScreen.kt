@@ -15,13 +15,14 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
+import com.example.manager.ui.customer.AddCustomerScreen
 import com.example.manager.ui.customer.CustomerListScreen // 我们已有的客户列表
 import com.example.manager.ui.me.MeScreen
 import com.example.manager.ui.navigation.AppDestinations
-import com.example.manager.ui.navigation.BottomNavItem // 导入导航项定义
 import com.example.manager.ui.work.WorkScreen
 import com.example.manager.viewmodel.AuthViewModel
 import com.example.manager.ui.customer.CustomerDetailScreen
+import com.example.manager.ui.navigation.BottomNavItem
 import com.example.manager.ui.order.OrderDetailScreen
 import com.example.manager.ui.order.OrderListScreen
 import com.example.manager.ui.order.AddEditOrderScreen
@@ -122,6 +123,7 @@ fun MainScreen(
                 // MeScreen(mainAppNavController = mainNavController) // MeScreen 暂时还是占位符或骨架
             }
 
+            // 客户列表
             composable(AppDestinations.CUSTOMER_LIST_ROUTE) {
                 CustomerListScreen(authViewModel = authViewModel, navController = bottomSheetNavController)
 
@@ -215,6 +217,18 @@ fun MainScreen(
                 WorkOrderListScreen(
                     navController = bottomSheetNavController,
                     navBackStackEntry = navBackStackEntry // <-- 传递给屏幕
+                )
+            }
+
+            // MainScreen.kt -> NavHost
+            composable(
+                route = AppDestinations.ADD_CUSTOMER_ROUTE_TEMPLATE,
+                arguments = listOf(navArgument("defaultName") { type = NavType.StringType; nullable = true })
+            ) { backStackEntry ->
+                val defaultName = backStackEntry.arguments?.getString("defaultName") ?: ""
+                AddCustomerScreen(
+                    navController = bottomSheetNavController, // 使用内部导航控制器
+                    defaultName = defaultName
                 )
             }
 

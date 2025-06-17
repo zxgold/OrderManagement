@@ -31,4 +31,14 @@ interface ProductDao {
     @Query("SELECT * FROM products WHERE id = :productId LIMIT 1")
     suspend fun getProductById(productId: Long): Product?
 
+    // --- **新增：按店铺和关键词搜索产品** ---
+    @Query("""
+        SELECT p.* FROM products AS p 
+        INNER JOIN suppliers AS s ON p.supplier_id = s.id 
+        WHERE s.store_id = :storeId AND p.is_active = 1 
+        AND (p.name LIKE '%' || :query || '%' OR p.category LIKE '%' || :query || '%' OR p.model LIKE '%' || :query || '%')
+        ORDER BY p.name ASC
+    """)
+    fun searchActiveProductsByStoreIdFlow(query: String, storeId: Long): Flow<List<Product>>
+
 }

@@ -42,7 +42,8 @@ data class TempOrderItem(
     var productName: String,
     var quantity: Int = 1,
     var actualUnitPrice: Double,
-    var notes: String? = null
+    var notes: String? = null,
+    val isCustomized: Boolean = false
     // 可以根据需要添加 category, model 等快照信息
 ) {
     val itemTotalAmount: Double
@@ -58,9 +59,6 @@ data class AddEditOrderUiState(
     val discount: Double = 0.0,
     val downPayment: Double = 0.0,
     // TODO: responsibleStaffIds (选择负责人)
-
-    // val availableCustomers: List<Customer> = emptyList(), // 用于客户选择
-    val availableProducts: List<Product> = emptyList(),   // 用于产品选择
 
     val isLoadingInitialData: Boolean = false, // 用于初始加载（例如加载产品和已有订单信息）
     val isLoadingCustomers: Boolean = false,
@@ -104,35 +102,49 @@ class OrderViewModel @Inject constructor(
     private val _orderDetailUiState = MutableStateFlow(OrderDetailUiState())
     val orderDetailUiState: StateFlow<OrderDetailUiState> = _orderDetailUiState.asStateFlow()
 
-    // --- 新增：用于客户搜索的响应式数据流 ---
-    // 1. 持有用户当前的搜索输入
+    // --- 客户搜索 (已完成) ---
     private val _customerSearchQuery = MutableStateFlow("")
     val customerSearchQuery: StateFlow<String> = _customerSearchQuery.asStateFlow()
-
-    // 2. 自动根据搜索词从数据库查询结果
     val customerSearchResults: StateFlow<List<Customer>> = _customerSearchQuery
-        .debounce(300L) // 防抖：停止输入300ms后才触发搜索
-        .distinctUntilChanged() // 只有文本变化时才继续
-        .flatMapLatest { query -> // 当 query 变化时，切换到新的查询 Flow
+        .debounce(300L)
+        .distinctUntilChanged()
+        .flatMapLatest { query ->
             val storeId = sessionManager.userSessionFlow.firstOrNull()?.storeId
             if (storeId != null && query.isNotBlank()) {
-                // 如果有店铺ID且搜索词不为空，则执行搜索
                 customerRepository.searchCustomersByStoreIdFlow(query, storeId)
+                    .map { results ->
+                        if (results.isEmpty()) {
+                            // **即时添加新客户的占位符**
+                            listOf(Customer(id = -1L, storeId = storeId, name = "创建新客户: “$query”", phone = query))
+                        } else { results }
+                    }
+            } else { flowOf(emptyList()) }
+        }
+        .catch { e -> emit(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // --- **新增：产品搜索的响应式数据流** ---
+    private val _productSearchQuery = MutableStateFlow("")
+    val productSearchQuery: StateFlow<String> = _productSearchQuery.asStateFlow()
+
+    val productSearchResults: StateFlow<List<Product>> = _productSearchQuery
+        .debounce(300L)
+        .distinctUntilChanged()
+        .flatMapLatest { query ->
+            val storeId = sessionManager.userSessionFlow.firstOrNull()?.storeId
+            if (storeId != null && query.isNotBlank()) {
+                productRepository.searchActiveProductsByStoreIdFlow(query, storeId) // **需要这个 Repo 方法**
             } else {
-                // 否则，返回一个空的 Flow
                 flowOf(emptyList())
             }
         }
-        .catch { e -> // 捕获上游 Flow (例如数据库查询) 可能发生的异常
-            Log.e("OrderViewModel", "Error in customer search flow", e)
-            _addEditOrderUiState.update { it.copy(errorMessage = "搜索客户时出错") }
-            emit(emptyList()) // 发出一个空列表作为错误时的状态
+        .catch { e ->
+            Log.e("OrderViewModel", "Error in product search flow", e)
+            _addEditOrderUiState.update { it.copy(errorMessage = "搜索产品时出错") }
+            emit(emptyList())
         }
-        .stateIn( // 将这个 Flow 转换为 StateFlow
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList() // 初始值为空列表
-        )
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
 
     // --- 辅助方法获取当前会话信息 ---
     private suspend fun getCurrentSessionInfo(): Pair<Long?, Long?> { // Pair<storeId, staffId>
@@ -170,25 +182,19 @@ class OrderViewModel @Inject constructor(
         _customerSearchQuery.value = query
     }
 
+    fun onProductSearchQueryChanged(query: String) { _productSearchQuery.value = query }
+
     // UI 调用这个方法来设置选中的客户
     fun onCustomerSelected(customer: Customer) {
-        _addEditOrderUiState.update { it.copy(selectedCustomer = if(customer.id == -1L) null else customer) }
-        // 选择后，清空搜索词，并因此清空搜索结果列表
-        _customerSearchQuery.value = ""
+        _addEditOrderUiState.update { it.copy(selectedCustomer = if(customer.id > 0) customer else null) }
+        onCustomerSearchQueryChanged("")
     }
 
     // prepareNewOrderForm 现在不再需要加载客户列表了
     fun prepareNewOrderForm() {
-        viewModelScope.launch {
-            val (storeId, _) = getCurrentSessionInfo()
-            if (storeId == null) {
-                _addEditOrderUiState.update { it.copy(errorMessage = "无法获取店铺信息以创建订单") }
-                return@launch
-            }
-            _addEditOrderUiState.value = AddEditOrderUiState(isLoadingInitialData = true) // 重置状态
-            loadProductsForSelection(storeId)
-            _addEditOrderUiState.update { it.copy(isLoadingInitialData = false) }
-        }
+        _addEditOrderUiState.value = AddEditOrderUiState() // 重置状态
+        onCustomerSearchQueryChanged("")
+        onProductSearchQueryChanged("")
     }
 
     fun prepareOrderForEditing(orderId: Long) { // 用户点击“编辑订单”时调用
@@ -225,8 +231,6 @@ class OrderViewModel @Inject constructor(
                             downPayment = order.downPayment
                         )
                     }
-                    // loadCustomersForSelection(storeId) // 仍然加载客户列表以备修改
-                    loadProductsForSelection(storeId)  // 加载产品列表
                 } else {
                     _addEditOrderUiState.update { it.copy(errorMessage = "未找到要编辑的订单") }
                 }
@@ -237,43 +241,26 @@ class OrderViewModel @Inject constructor(
         }
     }
 
-    private fun loadProductsForSelection(storeId: Long) {
-        viewModelScope.launch {
-            _addEditOrderUiState.update { it.copy(isLoadingProducts = true) }
-            // 使用 Flow 并取第一个结果，或者直接将 availableProducts 也变成一个 StateFlow
-            // 为了保持现有结构，我们先用 .first()
-            try {
-                // Repository 的方法返回 Flow，我们取其第一个发出的值
-                val products = productRepository.getAllActiveProductsByStoreIdFlow(storeId).first()
-                _addEditOrderUiState.update { it.copy(availableProducts = products, isLoadingProducts = false) }
-            } catch (e: Exception) {
-                _addEditOrderUiState.update { it.copy(isLoadingProducts = false, errorMessage = "加载产品列表失败: ${e.localizedMessage}") }
-            }
-        }
-    }
-
-    fun addTempOrderItem(product: Product, quantity: Int, price: Double, notes: String?) {
+    fun addTempOrderItem(product: Product, quantity: Int, price: Double, notes: String?, isCustomized: Boolean) {
         val newItem = TempOrderItem(
             productId = product.id,
-            productName = product.name, // 快照产品名
-            quantity = quantity,
-            actualUnitPrice = price,    // 使用实际成交价
-            notes = notes
+            productName = if (isCustomized) "${product.name} (定制)" else product.name,
+            quantity = if (isCustomized) 1 else quantity,
+            actualUnitPrice = price,
+            notes = notes,
+            isCustomized = isCustomized
         )
-        _addEditOrderUiState.update {
-            it.copy(tempOrderItems = it.tempOrderItems + newItem)
-        }
+        _addEditOrderUiState.update { it.copy(tempOrderItems = it.tempOrderItems + newItem) }
+        onProductSearchQueryChanged("") // 添加后清空产品搜索
     }
 
-    fun updateTempOrderItem(tempId: String, quantity: Int, price: Double, notes: String?) {
+    fun updateTempOrderItem(tempId: String, newQuantity: Int, newPrice: Double) {
         _addEditOrderUiState.update { currentState ->
             currentState.copy(
                 tempOrderItems = currentState.tempOrderItems.map {
                     if (it.tempId == tempId) {
-                        it.copy(quantity = quantity, actualUnitPrice = price, notes = notes)
-                    } else {
-                        it
-                    }
+                        it.copy(quantity = newQuantity, actualUnitPrice = newPrice)
+                    } else { it }
                 }
             )
         }
@@ -351,6 +338,7 @@ class OrderViewModel @Inject constructor(
                     actualUnitPrice = tempItem.actualUnitPrice,
                     itemTotalAmount = tempItem.itemTotalAmount,
                     status = OrderItemStatus.NOT_ORDERED,
+                    isCustomized = tempItem.isCustomized,
                     notes = tempItem.notes
                 )
             }
@@ -395,6 +383,17 @@ class OrderViewModel @Inject constructor(
         }
     }
 
+    // **新增：一个专门处理从“即时添加”返回后选中客户的方法**
+    fun selectCustomerById(customerId: Long) {
+        viewModelScope.launch {
+            val storeId = getCurrentStoreId() ?: return@launch
+            val customer = customerRepository.getCustomerByIdAndStoreId(customerId, storeId)
+            if (customer != null) {
+                onCustomerSelected(customer) // 复用现有的选中逻辑
+            }
+        }
+    }
+
 
     // --- 订单详情 ---
     fun loadOrderDetail(orderId: Long) {
@@ -433,6 +432,15 @@ class OrderViewModel @Inject constructor(
     private fun generateOrderNumber(): String {
         return "ORD-${UUID.randomUUID().toString().takeLast(8).uppercase()}"
     }
+
+    private suspend fun getCurrentStoreId(): Long? {
+        val currentSession = sessionManager.userSessionFlow.firstOrNull()
+        if (currentSession?.storeId == null) {
+            Log.e("OrderViewModel", "Critical: storeId is null in current session.")
+        }
+        return currentSession?.storeId
+    }
+
 
     // 清除错误信息的方法
     fun clearOrderListError() { _orderListUiState.update { it.copy(errorMessage = null) } }

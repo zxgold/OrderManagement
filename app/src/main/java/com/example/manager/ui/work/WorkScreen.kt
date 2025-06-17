@@ -37,18 +37,18 @@ fun WorkScreen(
     bottomNavController: NavController // 从 MainScreen 传递过来的
 ) {
     val customerManagementItems = listOf(
-        DashboardActionItem("客户", Icons.Filled.People, "customer_list_for_work"),
+        DashboardActionItem("客户", Icons.Filled.People, CUSTOMER_LIST_ROUTE),
         DashboardActionItem("跟进", Icons.Filled.Schedule, "follow_up"),
-        DashboardActionItem("销售单", Icons.AutoMirrored.Filled.ReceiptLong, "order_list_screen"),
+        DashboardActionItem("销售单", Icons.AutoMirrored.Filled.ReceiptLong, ORDER_LIST_ROUTE),
         DashboardActionItem("回款", Icons.Filled.Payment, "payments"),
-        DashboardActionItem("工单", Icons.AutoMirrored.Filled.ListAlt, "work_order_list_screen")
+        DashboardActionItem("工单", Icons.AutoMirrored.Filled.ListAlt, WORK_ORDER_LIST_ROUTE)
     )
 
     val internalManagementItems = listOf(
         DashboardActionItem("审批", Icons.Filled.Approval, "approvals"),
         DashboardActionItem("资料云盘", Icons.Filled.Cloud, "cloud_storage"),
         DashboardActionItem("支出账本", Icons.Filled.AccountBalanceWallet, "ledger"),
-        DashboardActionItem("供应商", Icons.Filled.Storefront, "supplier_product_screen")
+        DashboardActionItem("供应商", Icons.Filled.Storefront, SUPPLIER_PRODUCT_ROUTE)
     )
 
     Column(
