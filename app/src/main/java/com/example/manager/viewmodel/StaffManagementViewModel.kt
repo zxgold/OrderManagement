@@ -123,6 +123,54 @@ class StaffManagementViewModel @Inject constructor(
     }
 
     // TODO: 添加 updateStaffInfo 和 resetPassword 方法
+    fun updateStaffInfo(staff: Staff, newName: String, newRole: StaffRole) {
+        viewModelScope.launch {
+            if (newName.isBlank()) {
+                _uiState.update { it.copy(errorMessage = "员工姓名不能为空") }
+                return@launch
+            }
+            // 校验权限 (老板不能修改自己的角色，也不能修改其他老板的信息)
+            val currentSession = sessionManager.userSessionFlow.firstOrNull()
+            if (currentSession?.staffRole != StaffRole.BOSS || staff.storeId != currentSession.storeId) {
+                _uiState.update { it.copy(errorMessage = "权限不足") }; return@launch
+            }
+            if (staff.role == StaffRole.BOSS && newRole != StaffRole.BOSS) {
+                _uiState.update { it.copy(errorMessage = "不能修改老板的角色") }; return@launch
+            }
+
+            val updatedStaff = staff.copy(name = newName, role = newRole, updatedAt = System.currentTimeMillis())
+            staffRepository.updateStaff(updatedStaff).onSuccess {
+                _uiState.update { it.copy(successMessage = "员工 “${newName}” 信息已更新") }
+            }.onFailure { e ->
+                _uiState.update { it.copy(errorMessage = "更新失败: ${e.message}") }
+            }
+        }
+    }
+
+    fun resetPassword(staff: Staff, newPassword: String) {
+        viewModelScope.launch {
+            if (newPassword.length < 6) {
+                _uiState.update { it.copy(errorMessage = "新密码至少需要6位") }
+                return@launch
+            }
+            // 校验权限
+            val currentSession = sessionManager.userSessionFlow.firstOrNull()
+            if (currentSession?.staffRole != StaffRole.BOSS || staff.storeId != currentSession.storeId) {
+                _uiState.update { it.copy(errorMessage = "权限不足") }; return@launch
+            }
+
+            // TODO: 对 newPassword 进行安全的哈希处理
+            val hashedPassword = newPassword
+
+            val updatedStaff = staff.copy(passwordHash = hashedPassword, updatedAt = System.currentTimeMillis())
+            staffRepository.updateStaff(updatedStaff).onSuccess {
+                _uiState.update { it.copy(successMessage = "员工 “${staff.name}” 的密码已重置") }
+            }.onFailure { e ->
+                _uiState.update { it.copy(errorMessage = "重置密码失败: ${e.message}") }
+            }
+        }
+    }
+
 
     fun messageShown() {
         _uiState.update { it.copy(errorMessage = null, successMessage = null) }

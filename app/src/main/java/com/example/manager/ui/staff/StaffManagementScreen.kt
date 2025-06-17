@@ -7,6 +7,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Password
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,6 +33,8 @@ fun StaffManagementScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var showAddStaffDialog by remember { mutableStateOf(false) }
+    var staffToEdit by remember { mutableStateOf<Staff?>(null) } // <-- 新增
+    var staffToResetPassword by remember { mutableStateOf<Staff?>(null) } // <-- 新增
 
     // 处理成功或失败的消息
     LaunchedEffect(uiState.errorMessage, uiState.successMessage) {
@@ -76,8 +81,9 @@ fun StaffManagementScreen(
                     items(uiState.staffList, key = { it.id }) { staff ->
                         StaffItemCard(
                             staff = staff,
-                            onStatusChange = { viewModel.toggleStaffStatus(staff) }
-                            // TODO: onEditClick, onResetPasswordClick
+                            onStatusChange = { viewModel.toggleStaffStatus(staff) },
+                            onEditClick = { staffToEdit = staff }, // <-- 实现
+                            onResetPasswordClick = { staffToResetPassword = staff } // <-- 实现
                         )
                     }
                 }
@@ -94,16 +100,44 @@ fun StaffManagementScreen(
             }
         )
     }
+
+    staffToEdit?.let { staff ->
+        Log.d("StaffManagementScreen", "staffToEdit is not null, should show EditStaffDialog") // <-- 添加日志
+        EditStaffDialog( // <-- **确认这里调用的是你创建的 EditStaffDialog**
+            staff = staff,
+            onDismiss = { staffToEdit = null },
+            onConfirm = { updatedName, updatedRole ->
+                viewModel.updateStaffInfo(staff, updatedName, updatedRole)
+                staffToEdit = null
+            }
+        )
+    }
+
+    staffToResetPassword?.let { staff ->
+        Log.d("StaffManagementScreen", "staffToResetPassword is not null, should show ResetPasswordDialog") // <-- 添加日志
+        ResetPasswordDialog( // <-- **确认这里调用的是你创建的 ResetPasswordDialog**
+            staffName = staff.name,
+            onDismiss = { staffToResetPassword = null },
+            onConfirm = { newPassword ->
+                viewModel.resetPassword(staff, newPassword)
+                staffToResetPassword = null
+            }
+        )
+    }
 }
 
 @Composable
 fun StaffItemCard(
     staff: Staff,
-    onStatusChange: (Boolean) -> Unit
+    onStatusChange: (Boolean) -> Unit,
+    onEditClick: () -> Unit,      // <-- 新增：编辑回调
+    onResetPasswordClick: () -> Unit // <-- 新增：重置密码回调
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier.padding(start = 16.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -116,14 +150,42 @@ fun StaffItemCard(
                     color = if (staff.role == StaffRole.BOSS) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
                 )
             }
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 8.dp)) {
                 Text("状态", style = MaterialTheme.typography.labelSmall)
                 Switch(
                     checked = staff.isActive,
-                    onCheckedChange = onStatusChange
+                    onCheckedChange = onStatusChange,
+                    // 如果是老板自己，不能禁用自己
+                    enabled = staff.role != StaffRole.BOSS
                 )
             }
-            // TODO: 添加三点菜单用于编辑和重置密码
+            Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(Icons.Filled.MoreVert, contentDescription = "更多操作")
+                }
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("编辑信息") },
+                        onClick = {
+                            onEditClick()
+                            showMenu = false
+                        },
+                        leadingIcon = { Icon(Icons.Filled.Edit, contentDescription = "编辑") }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("重置密码") },
+                        onClick = {
+                            onResetPasswordClick()
+                            showMenu = false
+                        },
+                        leadingIcon = { Icon(Icons.Filled.Password, contentDescription = "重置密码") }
+                    )
+                }
+            }
+
         }
     }
 }

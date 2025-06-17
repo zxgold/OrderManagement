@@ -32,7 +32,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.example.manager.data.model.enums.StaffRole
 import com.example.manager.data.preferences.UserSession
-import com.example.manager.ui.components.DashboardItem // 如果想用类似的卡片布局
 import com.example.manager.ui.navigation.AppDestinations
 import com.example.manager.viewmodel.AuthViewModel
 
