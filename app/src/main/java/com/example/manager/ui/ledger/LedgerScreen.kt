@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -14,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -21,6 +23,7 @@ import com.example.manager.data.model.entity.LedgerEntry
 import com.example.manager.data.model.enums.LedgerEntryType
 import com.example.manager.viewmodel.LedgerViewModel
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -39,17 +42,24 @@ fun LedgerScreen(
         initialSelectedDateMillis = uiState.startDate
     )
     // -----------------------------
+    // --- 用于日期范围选择器的状态 ---
+    var showDateRangePickerDialog by remember { mutableStateOf(false) }
+    val dateRangePickerState = rememberDateRangePickerState(
+        // 设置初始显示的范围
+        initialSelectedStartDateMillis = uiState.startDate,
+        initialSelectedEndDateMillis = uiState.endDate
+    )
+    // ------------------------------------
+
 
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    // 在标题中显示当前选择的日期范围
                     val startDateText = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(uiState.startDate))
                     val endDateText = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(uiState.endDate))
-                    val titleText = if (startDateText == endDateText) startDateText else "$startDateText ~ $endDateText"
-                    Text(titleText)
+                    Text(if (startDateText == endDateText) startDateText else "$startDateText ~ $endDateText")
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
@@ -57,9 +67,9 @@ fun LedgerScreen(
                     }
                 },
                 actions = {
-                    // 添加日期选择按钮
-                    IconButton(onClick = { showDatePickerDialog = true }) {
-                        Icon(Icons.Filled.DateRange, contentDescription = "选择日期")
+                    // **修改此按钮为触发范围选择**
+                    IconButton(onClick = { showDateRangePickerDialog = true }) {
+                        Icon(Icons.Filled.CalendarMonth, contentDescription = "选择日期范围")
                     }
                 }
             )
@@ -118,6 +128,30 @@ fun LedgerScreen(
         }
     }
 
+    // --- 日期范围选择器对话框 ---
+    if (showDateRangePickerDialog) {
+        DateRangePickerDialog(
+            dateRangePickerState = dateRangePickerState,
+            onDismiss = { showDateRangePickerDialog = false },
+            onConfirm = {
+                val start = dateRangePickerState.selectedStartDateMillis
+                val end = dateRangePickerState.selectedEndDateMillis
+                if (start != null && end != null) {
+                    // 我们需要将用户选择的结束日期调整为当天的最后一刻
+                    val calendar = Calendar.getInstance()
+                    calendar.timeInMillis = end
+                    calendar.set(Calendar.HOUR_OF_DAY, 23)
+                    calendar.set(Calendar.MINUTE, 59)
+                    calendar.set(Calendar.SECOND, 59)
+                    val endOfDay = calendar.timeInMillis
+
+                    viewModel.setDateRange(start, endOfDay)
+                }
+                showDateRangePickerDialog = false
+            }
+        )
+    }
+
     if (showAddDialog) {
         AddLedgerEntryDialog(
             onDismiss = { showAddDialog = false },
@@ -128,6 +162,7 @@ fun LedgerScreen(
         )
     }
 }
+
 
 @Composable
 private fun LedgerSummaryHeader(totalIncome: Double, totalExpense: Double, balance: Double) {
@@ -176,5 +211,33 @@ private fun LedgerItemRow(entry: LedgerEntry) {
             fontWeight = FontWeight.Bold,
             color = amountColor
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DateRangePickerDialog(
+    dateRangePickerState: DateRangePickerState,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = MaterialTheme.shapes.extraLarge,
+            tonalElevation = 6.dp
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                DateRangePicker(state = dateRangePickerState, modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) { Text("取消") }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    TextButton(onClick = onConfirm) { Text("确认") }
+                }
+            }
+        }
     }
 }

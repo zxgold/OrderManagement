@@ -88,6 +88,12 @@ class LedgerViewModel @Inject constructor(
     // --- UI Actions ---
 
     fun setDateRange(startDate: Long, endDate: Long) {
+        // 需要确保 endDate 大于等于 startDate
+        if (startDate > endDate) {
+            // 可以选择交换它们，或者忽略此次更新
+            Log.w("LedgerViewModel", "setDateRange failed: startDate is after endDate.")
+            return
+        }
         _dateRange.value = Pair(startDate, endDate)
     }
 
