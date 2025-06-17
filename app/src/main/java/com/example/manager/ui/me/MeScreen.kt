@@ -32,7 +32,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.example.manager.data.model.enums.StaffRole
 import com.example.manager.data.preferences.UserSession
-import com.example.manager.ui.components.DashboardItem // 如果想用类似的卡片布局
 import com.example.manager.ui.navigation.AppDestinations
 import com.example.manager.viewmodel.AuthViewModel
 
@@ -85,7 +84,7 @@ fun MeScreen(
                 text = "员工管理",
                 onClick = {
                     Log.d("MeScreen", "员工管理 点击")
-                    // TODO: mainAppNavController.navigate("staff_management_route")
+                    mainAppNavController.navigate(AppDestinations.STAFF_MANAGEMENT_ROUTE) // 使用上层 NavController
                     // 需要在 AppNavigation 中定义 staff_management_route
                     // 并创建一个 StaffManagementScreen
                 }

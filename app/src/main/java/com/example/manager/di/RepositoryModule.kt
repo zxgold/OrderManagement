@@ -1,19 +1,6 @@
 package com.example.manager.di
 
-import com.example.manager.data.repository.CustomerRepository // 导入接口
-import com.example.manager.data.repository.CustomerRepositoryImpl // 导入实现
-import com.example.manager.data.repository.InventoryRepository
-import com.example.manager.data.repository.InventoryRepositoryImpl
-import com.example.manager.data.repository.OrderRepository
-import com.example.manager.data.repository.OrderRepositoryImpl
-import com.example.manager.data.repository.StaffRepository // 导入接口
-import com.example.manager.data.repository.StaffRepositoryImpl // 导入实现
-import com.example.manager.data.repository.StoreRepository
-import com.example.manager.data.repository.StoreRepositoryImpl
-import com.example.manager.data.repository.ProductRepository // <-- 导入接口
-import com.example.manager.data.repository.ProductRepositoryImpl // <-- 导入实现
-import com.example.manager.data.repository.SupplierRepository
-import com.example.manager.data.repository.SupplierRepositoryImpl
+import com.example.manager.data.repository.*
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn

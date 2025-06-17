@@ -1,7 +1,7 @@
 package com.example.manager.data.repository
 
 import com.example.manager.data.model.entity.Staff
-
+import kotlinx.coroutines.flow.Flow
 
 
 /*
@@ -26,17 +26,17 @@ import com.example.manager.data.model.entity.Staff
 interface StaffRepository {
     suspend fun getStaffByUsername(username: String): Staff?
 
-    suspend fun insertOrUpdateStaff(staff: Staff): Long // 用于添加或更新员工
+    suspend fun insertOrUpdateStaff(staff: Staff): Result<Long> // <-- 建议返回 Result(why？)
 
-    suspend fun getStaffById(id: Long): Staff? // 根据ID获取员工
-    // Long类型的主键是什么？
+    suspend fun updateStaff(staff: Staff): Result<Int> // <-- 建议返回 Result
 
-    suspend fun getAllStaffs(): List<Staff> // 获取所有员工（老板权限）
-
-    suspend fun hasAnyStaff(): Boolean // 判断是否存在任何员工记录
-
-    suspend fun isInitialSetupNeeded(): Boolean // 判断是否需要初始设置（即老板注册）
+    suspend fun getStaffById(id: Long): Staff?
 
     suspend fun getStaffByIds(ids: List<Long>): List<Staff>
+
+    suspend fun isInitialSetupNeeded(): Boolean
+
+    // --- **用 Flow 方法替换旧的列表方法** ---
+    fun getAllStaffsByStoreIdFlow(storeId: Long): Flow<List<Staff>>
 
 }
