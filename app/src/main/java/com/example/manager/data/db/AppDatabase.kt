@@ -12,7 +12,7 @@ import com.example.manager.data.model.typeconverter.Converters // 导入 Convert
 // 如果你之前的版本是 1，那么现在至少应该是 2。
 // 由于我们做了大量结构改动 (V3 设计)，可以跳跃式增加，比如直接用 3，
 // 关键是 **必须比之前的版本号大**。
-private const val DATABASE_VERSION = 18 // <--- !! 修改为你确定的新版本号 !!
+private const val DATABASE_VERSION = 19 // <--- !! 修改为你确定的新版本号 !!
 
 @Database(
     entities = [

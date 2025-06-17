@@ -34,7 +34,7 @@ fun WorkScreen(
 ) {
     val customerManagementItems = listOf(
         DashboardActionItem("客户", Icons.Filled.People, AppDestinations.CUSTOMER_LIST_ROUTE),
-        DashboardActionItem("跟进", Icons.Filled.Schedule, "follow_up"),
+        DashboardActionItem("跟进", Icons.Filled.Schedule, AppDestinations.FOLLOW_UP_ROUTE),
         DashboardActionItem("销售单", Icons.AutoMirrored.Filled.ReceiptLong, AppDestinations.ORDER_LIST_ROUTE),
         DashboardActionItem("回款", Icons.Filled.Payment, "payments"),
         DashboardActionItem("工单", Icons.AutoMirrored.Filled.ListAlt, AppDestinations.WORK_ORDER_LIST_ROUTE)
@@ -81,6 +81,9 @@ fun WorkScreen(
                 }
                 if (itemTag == AppDestinations.WORK_ORDER_LIST_ROUTE) {
                     bottomNavController.navigate(AppDestinations.WORK_ORDER_LIST_ROUTE)
+                }
+                if (itemTag == AppDestinations.FOLLOW_UP_ROUTE) {
+                    bottomNavController.navigate(AppDestinations.FOLLOW_UP_ROUTE)
                 }
 
 
