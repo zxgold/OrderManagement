@@ -22,6 +22,7 @@ import com.example.manager.ui.navigation.AppDestinations
 import com.example.manager.ui.work.WorkScreen
 import com.example.manager.viewmodel.AuthViewModel
 import com.example.manager.ui.customer.CustomerDetailScreen
+import com.example.manager.ui.followup.FollowUpScreen
 import com.example.manager.ui.inventory.InventoryScreen
 import com.example.manager.ui.ledger.LedgerScreen
 import com.example.manager.ui.navigation.BottomNavItem
@@ -133,6 +134,11 @@ fun MainScreen(
 
             composable(AppDestinations.LEDGER_ROUTE) {
                 LedgerScreen(navController = bottomSheetNavController)
+
+            }
+
+            composable(AppDestinations.FOLLOW_UP_ROUTE) {
+                FollowUpScreen(navController = bottomSheetNavController)
 
             }
 
