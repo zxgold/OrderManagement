@@ -26,6 +26,7 @@ object AppDestinations {
     const val WORK_ORDER_LIST_ROUTE = "work_order_list_screen"
     const val ORDER_LIST_ROUTE = "order_list_screen"
     const val INVENTORY_ROUTE = "inventory_screen"
+    const val LEDGER_ROUTE = "ledger_screen"
     // TODO: 为其他 WorkScreen 的仪表盘入口定义路由...
 
     // --- Detail/Add/Edit Screen Routes (通常带参数) ---

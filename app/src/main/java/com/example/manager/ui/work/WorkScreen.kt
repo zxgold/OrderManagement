@@ -41,7 +41,7 @@ fun WorkScreen(
     )
 
     val internalManagementItems = listOf(
-        DashboardActionItem("支出账本", Icons.Filled.AccountBalanceWallet, "ledger"),
+        DashboardActionItem("支出账本", Icons.Filled.AccountBalanceWallet, AppDestinations.LEDGER_ROUTE),
         DashboardActionItem("供应商", Icons.Filled.Storefront, AppDestinations.SUPPLIER_PRODUCT_ROUTE),
         DashboardActionItem("店铺库存", Icons.Filled.Inventory, AppDestinations.INVENTORY_ROUTE),
         DashboardActionItem("审批", Icons.Filled.Approval, "approvals"),
