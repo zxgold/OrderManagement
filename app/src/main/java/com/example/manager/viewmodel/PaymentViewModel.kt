@@ -81,6 +81,24 @@ class PaymentViewModel @Inject constructor(
     private val _messageChannel = Channel<String>()
     val messageFlow = _messageChannel.receiveAsFlow()
 
+    // --- **新增：用于在添加回款时，响应式搜索客户** ---
+    private val _customerSearchQuery = MutableStateFlow("")
+    val customerSearchQuery: StateFlow<String> = _customerSearchQuery.asStateFlow()
+
+    val customerSearchResults: StateFlow<List<Customer>> = _customerSearchQuery
+        .debounce(300L)
+        .distinctUntilChanged()
+        .flatMapLatest { query ->
+            val storeId = sessionManager.userSessionFlow.firstOrNull()?.storeId
+            if (storeId != null && query.isNotBlank()) {
+                customerRepository.searchCustomersByStoreIdFlow(query, storeId)
+            } else {
+                flowOf(emptyList())
+            }
+        }
+        .catch { e -> Log.e("PaymentVM", "Customer search error", e); emit(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    // ----------------------------------------------------
 
     fun loadDataForDialog() {
         viewModelScope.launch {
@@ -124,13 +142,18 @@ class PaymentViewModel @Inject constructor(
         _dateRange.value = Pair(startDate, endDate)
     }
 
+    // **新增：处理 UI 事件的方法**
+    fun onCustomerSearchQueryChanged(query: String) {
+        _customerSearchQuery.value = query
+    }
+
     fun addPayment(
         amount: Double,
         paymentMethod: String?,
         notes: String?,
         date: Long,
-        order: Order?, // 接收整个 Order 对象
-        customer: Customer? // 或者只接收 Customer 对象
+        order: Order?,
+        customer: Customer? // **现在这个是关键**
     ) {
         viewModelScope.launch {
             val session = sessionManager.userSessionFlow.firstOrNull()
@@ -151,14 +174,14 @@ class PaymentViewModel @Inject constructor(
             }
 
             val newPayment = Payment(
-                storeId = storeId,
+                storeId = storeId!!,
                 orderId = order?.id,
                 customerId = customerId,
                 amount = amount,
                 paymentMethod = paymentMethod,
                 notes = notes,
                 paymentDate = date,
-                staffId = staffId
+                staffId = staffId!!
             )
 
             paymentRepository.insertPayment(newPayment)

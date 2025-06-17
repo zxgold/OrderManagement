@@ -21,6 +21,7 @@ import com.example.manager.viewmodel.PaymentViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.example.manager.data.model.entity.Customer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,6 +33,11 @@ fun PaymentScreen(
     val addPaymentUiState by viewModel.addPaymentUiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var showAddDialog by remember { mutableStateOf(false) }
+
+    // --- **新增：获取客户搜索相关的状态** ---
+    val customerSearchQuery by viewModel.customerSearchQuery.collectAsStateWithLifecycle()
+    val customerSearchResults by viewModel.customerSearchResults.collectAsStateWithLifecycle()
+    // ------------------------------------
 
     // 监听一次性消息
     LaunchedEffect(Unit) {
@@ -81,9 +87,13 @@ fun PaymentScreen(
         } else {
             AddPaymentDialog(
                 availableOrders = addPaymentUiState.availableOrders,
-                availableCustomers = addPaymentUiState.availableCustomers,
+                // 传递搜索相关的状态和回调
+                customerSearchQuery = customerSearchQuery,
+                onCustomerSearchQueryChanged = viewModel::onCustomerSearchQueryChanged,
+                customerSearchResults = customerSearchResults,
                 onDismiss = { showAddDialog = false },
                 onConfirm = { amount, method, notes, order, customer ->
+                    // onConfirm 现在接收 customer 对象
                     viewModel.addPayment(amount, method, notes, System.currentTimeMillis(), order, customer)
                     showAddDialog = false
                 }

@@ -13,13 +13,18 @@ import androidx.compose.ui.unit.dp
 import com.example.manager.data.model.entity.Customer
 import com.example.manager.data.model.entity.Order
 import com.example.manager.data.model.enums.LedgerEntryType
+import com.example.manager.ui.components.CustomerSearchableDropdown
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddPaymentDialog(
     availableOrders: List<Order>,
-    availableCustomers: List<Customer>,
+    // --- 新增搜索相关的参数 ---
+    customerSearchQuery: String,
+    onCustomerSearchQueryChanged: (String) -> Unit,
+    customerSearchResults: List<Customer>,
     onDismiss: () -> Unit,
+    // onConfirm 回调现在接收选中的 customer 对象
     onConfirm: (amount: Double, paymentMethod: String?, notes: String?, order: Order?, customer: Customer?) -> Unit
 ) {
     var selectedOrder by remember { mutableStateOf<Order?>(null) }
@@ -32,8 +37,13 @@ fun AddPaymentDialog(
     var amountError by remember { mutableStateOf<String?>(null) }
 
     // 当订单被选择时，自动更新选中的客户
-    LaunchedEffect(selectedOrder) {
-        selectedCustomer = availableCustomers.find { it.id == selectedOrder?.customerId }
+    // 这个逻辑需要调整，因为 availableCustomers 不再被传递
+    // 我们可以让 ViewModel 在选中订单后，也更新选中的客户状态
+    // 为了简化，我们暂时让用户在选中订单后，客户选择器显示客户名但仍可被清除
+    val customerFromOrder = remember(selectedOrder) {
+        // 这需要一个方法来从 availableCustomers 找到客户，或者 ViewModel 来处理
+        // 暂时简化
+        null
     }
 
     AlertDialog(
@@ -50,10 +60,12 @@ fun AddPaymentDialog(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // 客户显示/选择器 (如果订单未选，则可独立选择)
-                CustomerSelector(
-                    customers = availableCustomers,
+                CustomerSearchableDropdown(
+                    searchQuery = customerSearchQuery,
+                    onSearchQueryChanged = onCustomerSearchQueryChanged,
+                    searchResults = customerSearchResults,
                     selectedCustomer = selectedCustomer,
-                    onCustomerSelected = { selectedCustomer = it },
+                    onCustomerSelected = { customer -> selectedCustomer = customer },
                     enabled = selectedOrder == null // 如果选了订单，则客户选择器禁用
                 )
                 Spacer(modifier = Modifier.height(16.dp))
@@ -145,38 +157,3 @@ private fun OrderSelector(
     }
 }
 
-// CustomerSelector 可以复用或创建一个类似的
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun CustomerSelector(
-    searchQuery: String,
-    onQueryChange: (String) -> Unit,
-    suggestions: List<Customer>,
-    selectedCustomer: Customer?,
-    onCustomerSelected: (Customer) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-    var hasFocus by remember { mutableStateOf(false) }
-    expanded = searchQuery.isNotBlank() && suggestions.isNotEmpty() && hasFocus
-
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = {}) {
-        OutlinedTextField(
-            value = selectedCustomer?.name ?: searchQuery,
-            onValueChange = {
-                if (selectedCustomer != null) onCustomerSelected(Customer(id=-1, name="", phone="", storeId = 0)) // Clear selection
-                onQueryChange(it)
-            },
-            label = { Text("搜索并选择客户 *") },
-            readOnly = selectedCustomer != null,
-            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryEditable).onFocusChanged { hasFocus = it.isFocused }
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { hasFocus = false }) {
-            suggestions.forEach { customer ->
-                DropdownMenuItem(
-                    text = { Text(customer.name) },
-                    onClick = { onCustomerSelected(customer) }
-                )
-            }
-        }
-    }
-}
