@@ -74,6 +74,7 @@ fun AddFollowUpDialog(
 }
 
 // 建议将 CustomerSelector 提取为公共组件，这里暂时复制并简化
+// TODO: CustomerSelector 提取为公共组件
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CustomerSearchableDropdown(
