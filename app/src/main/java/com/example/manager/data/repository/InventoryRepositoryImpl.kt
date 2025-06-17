@@ -74,4 +74,8 @@ class InventoryRepositoryImpl @Inject constructor(
             }
         } catch (e: Exception) { Result.failure(e) }
     }
+
+    override fun getInventoryItemsBySupplierFlow(supplierId: Long): Flow<List<InventoryItemWithProductInfo>> { // <-- **实现**
+        return inventoryItemDao.getInventoryItemsBySupplierFlow(supplierId)
+    }
 }

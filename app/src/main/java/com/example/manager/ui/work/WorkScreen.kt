@@ -19,10 +19,6 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.manager.ui.components.DashboardItem // 导入 DashboardItem
 import com.example.manager.ui.navigation.AppDestinations
-import com.example.manager.ui.navigation.AppDestinations.CUSTOMER_LIST_ROUTE
-import com.example.manager.ui.navigation.AppDestinations.ORDER_LIST_ROUTE
-import com.example.manager.ui.navigation.AppDestinations.SUPPLIER_PRODUCT_ROUTE
-import com.example.manager.ui.navigation.AppDestinations.WORK_ORDER_LIST_ROUTE
 
 
 data class DashboardActionItem(
@@ -37,18 +33,21 @@ fun WorkScreen(
     bottomNavController: NavController // 从 MainScreen 传递过来的
 ) {
     val customerManagementItems = listOf(
-        DashboardActionItem("客户", Icons.Filled.People, CUSTOMER_LIST_ROUTE),
+        DashboardActionItem("客户", Icons.Filled.People, AppDestinations.CUSTOMER_LIST_ROUTE),
         DashboardActionItem("跟进", Icons.Filled.Schedule, "follow_up"),
-        DashboardActionItem("销售单", Icons.AutoMirrored.Filled.ReceiptLong, ORDER_LIST_ROUTE),
+        DashboardActionItem("销售单", Icons.AutoMirrored.Filled.ReceiptLong, AppDestinations.ORDER_LIST_ROUTE),
         DashboardActionItem("回款", Icons.Filled.Payment, "payments"),
-        DashboardActionItem("工单", Icons.AutoMirrored.Filled.ListAlt, WORK_ORDER_LIST_ROUTE)
+        DashboardActionItem("工单", Icons.AutoMirrored.Filled.ListAlt, AppDestinations.WORK_ORDER_LIST_ROUTE)
     )
 
     val internalManagementItems = listOf(
+        DashboardActionItem("支出账本", Icons.Filled.AccountBalanceWallet, "ledger"),
+        DashboardActionItem("供应商", Icons.Filled.Storefront, AppDestinations.SUPPLIER_PRODUCT_ROUTE),
+        DashboardActionItem("店铺库存", Icons.Filled.Inventory, AppDestinations.INVENTORY_ROUTE),
         DashboardActionItem("审批", Icons.Filled.Approval, "approvals"),
         DashboardActionItem("资料云盘", Icons.Filled.Cloud, "cloud_storage"),
-        DashboardActionItem("支出账本", Icons.Filled.AccountBalanceWallet, "ledger"),
-        DashboardActionItem("供应商", Icons.Filled.Storefront, SUPPLIER_PRODUCT_ROUTE)
+
+
     )
 
     Column(
@@ -74,14 +73,14 @@ fun WorkScreen(
             items = customerManagementItems,
             onItemClick = { itemTag ->
                 Log.d("WorkScreen", "客户管理项点击: $itemTag")
-                if (itemTag == CUSTOMER_LIST_ROUTE) {
-                    bottomNavController.navigate(CUSTOMER_LIST_ROUTE)
+                if (itemTag == AppDestinations.CUSTOMER_LIST_ROUTE) {
+                    bottomNavController.navigate(AppDestinations.CUSTOMER_LIST_ROUTE)
                 }
-                if (itemTag == ORDER_LIST_ROUTE) {
-                    bottomNavController.navigate(ORDER_LIST_ROUTE)
+                if (itemTag == AppDestinations.ORDER_LIST_ROUTE) {
+                    bottomNavController.navigate(AppDestinations.ORDER_LIST_ROUTE)
                 }
-                if (itemTag == WORK_ORDER_LIST_ROUTE) {
-                    bottomNavController.navigate(WORK_ORDER_LIST_ROUTE)
+                if (itemTag == AppDestinations.WORK_ORDER_LIST_ROUTE) {
+                    bottomNavController.navigate(AppDestinations.WORK_ORDER_LIST_ROUTE)
                 }
 
 
@@ -100,9 +99,14 @@ fun WorkScreen(
             onItemClick = { itemTag ->
                 Log.d("WorkScreen", "内部管理项点击: $itemTag")
                 // TODO: 处理导航
-                if (itemTag == SUPPLIER_PRODUCT_ROUTE) {
-                    bottomNavController.navigate(SUPPLIER_PRODUCT_ROUTE)
+                if (itemTag == AppDestinations.SUPPLIER_PRODUCT_ROUTE) {
+                    bottomNavController.navigate(AppDestinations.SUPPLIER_PRODUCT_ROUTE)
                 }
+
+                if (itemTag == AppDestinations.INVENTORY_ROUTE) {
+                    bottomNavController.navigate(AppDestinations.INVENTORY_ROUTE)
+                }
+
             }
         )
     }

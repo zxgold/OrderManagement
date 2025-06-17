@@ -69,4 +69,29 @@ interface InventoryItemDao {
         ORDER BY p.name ASC
     """)
     fun getInventoryItemsWithProductInfoFlow(storeId: Long): Flow<List<InventoryItemWithProductInfo>>
+
+    /**
+     * **新增：根据供应商ID获取该供应商所有产品的库存项。**
+     * 通过连接 products 表来实现筛选。
+     */
+    @Query("""
+        SELECT 
+            ii.id, 
+            ii.store_id, 
+            ii.product_id, 
+            ii.quantity, 
+            ii.last_updated_at, 
+            ii.is_standard_stock, 
+            ii.customization_details, 
+            ii.reserved_for_order_item_id, 
+            ii.status, 
+            ii.location_in_warehouse,
+            p.name as productName, 
+            p.model as productModel 
+        FROM inventory_items AS ii
+        INNER JOIN products AS p ON ii.product_id = p.id
+        WHERE p.supplier_id = :supplierId 
+        ORDER BY p.name ASC
+    """)
+    fun getInventoryItemsBySupplierFlow(supplierId: Long): Flow<List<InventoryItemWithProductInfo>>
 }

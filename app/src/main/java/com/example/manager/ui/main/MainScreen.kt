@@ -22,6 +22,7 @@ import com.example.manager.ui.navigation.AppDestinations
 import com.example.manager.ui.work.WorkScreen
 import com.example.manager.viewmodel.AuthViewModel
 import com.example.manager.ui.customer.CustomerDetailScreen
+import com.example.manager.ui.inventory.InventoryScreen
 import com.example.manager.ui.navigation.BottomNavItem
 import com.example.manager.ui.order.OrderDetailScreen
 import com.example.manager.ui.order.OrderListScreen
@@ -230,6 +231,11 @@ fun MainScreen(
                     navController = bottomSheetNavController, // 使用内部导航控制器
                     defaultName = defaultName
                 )
+            }
+
+            // 首页点击库存管理跳转页面
+            composable(AppDestinations.INVENTORY_ROUTE) {
+                InventoryScreen(navController = bottomSheetNavController)
             }
 
         }

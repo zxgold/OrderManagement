@@ -19,4 +19,6 @@ interface InventoryRepository {
     suspend fun decreaseStandardStock(storeId: Long, productId: Long, amount: Int): Result<Unit>
 
     suspend fun decreaseCustomizedStockByOrderItemId(orderItemId: Long): Result<Unit>
+
+    fun getInventoryItemsBySupplierFlow(supplierId: Long): Flow<List<InventoryItemWithProductInfo>>
 }
