@@ -49,29 +49,32 @@ data class FollowUp(
     val customerId: Long,
 
     @ColumnInfo(name = "order_id")
-    val orderId: Long,
+    val orderId: Long?, // **改为可空，允许只跟进客户**
 
-    @ColumnInfo(name = "sequence", defaultValue = "1")
-    val sequence: Int = 1, // 第几次计划的回访
+    // --- 新增/修改字段 ---
+    @ColumnInfo(name = "follow_up_date") // **新增：本次跟进的日期**
+    val followUpDate: Long,
 
-    @ColumnInfo(name = "status")
-    val status: FollowUpStatus = FollowUpStatus.PENDING, // 默认待处理
-
-    @ColumnInfo(name = "scheduled_date")
-    val scheduledDate: Long, // 计划回访日期
-
-    @ColumnInfo(name = "actual_follow_up_date")
-    val actualFollowUpDate: Long? = null, // 实际完成日期
+    @ColumnInfo(name = "notes") // **将 notes 设为非空**
+    val notes: String,
 
     @ColumnInfo(name = "staff_id")
-    val staffId: Long? = null, // 执行人 ID
+    val staffId: Long, // **改为非空，操作人必须有**
 
-    @ColumnInfo(name = "notes")
-    val notes: String? = null, // 回访记录内容
+    // --- 用于计划性回访的字段 (保持可空) ---
+    @ColumnInfo(name = "is_planned") // **新增：标记是否为计划回访**
+    val isPlanned: Boolean = false,
+    @ColumnInfo(name = "status")
+    val status: FollowUpStatus? = null,
+    @ColumnInfo(name = "scheduled_date")
+    val scheduledDate: Long? = null,
+
+    // --- 用于记录下一次行动的字段 (保持可空) ---
+    @ColumnInfo(name = "next_action_date")
+    val nextActionDate: Long? = null,
+    @ColumnInfo(name = "next_action_note")
+    val nextActionNote: String? = null,
 
     @ColumnInfo(name = "created_at")
-    val createdAt: Long = System.currentTimeMillis(),
-
-    @ColumnInfo(name = "updated_at")
-    val updatedAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis()
 )
