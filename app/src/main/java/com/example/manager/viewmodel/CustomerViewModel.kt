@@ -48,18 +48,31 @@ class CustomerViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(CustomerListUiState())
     val uiState: StateFlow<CustomerListUiState> = _uiState.asStateFlow()
 
+    // 将 loadCustomersBasedOnSession 合并到 init 或 refreshCustomerList 中
+    // 或者保持它为 private，让 refreshCustomerList 调用它
     init {
         Log.d("CustomerViewModel", "ViewModel initialized")
-        // 在 init 中加载客户时，也需要 storeId
-        viewModelScope.launch {
-            loadCustomersBasedOnSession()
-        }
+        refreshCustomerList() // init 时也调用刷新
     }
 
-    // --- 新增：用于广播添加客户的结果 ---
+    // --- 用于广播添加客户的结果 ---
     private val _addCustomerResultChannel = Channel<AddCustomerResult>()
     val addCustomerResultFlow = _addCustomerResultChannel.receiveAsFlow()
     // ------------------------------------
+
+    // 我们将 loadCustomersBasedOnSession 的核心逻辑提取出来，并使其 public
+    fun refreshCustomerList() {
+        viewModelScope.launch {
+            Log.d("CustomerViewModel", "refreshCustomerList called.")
+            val storeId = getCurrentStoreId()
+            if (storeId == null) {
+                _uiState.update { it.copy(isLoading = false, customers = emptyList(), errorMessage = "无法获取当前店铺信息，无法加载客户列表。") }
+                return@launch
+            }
+            // 重新加载当前搜索条件下的客户列表
+            loadCustomers(storeId)
+        }
+    }
 
     private suspend fun getCurrentStoreId(): Long? {
         val currentSession = sessionManager.userSessionFlow.firstOrNull()

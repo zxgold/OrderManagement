@@ -134,10 +134,14 @@ fun AddEditOrderScreen(
                     onSearchQueryChanged = viewModel::onCustomerSearchQueryChanged,
                     searchResults = customerSearchResults,
                     selectedCustomer = uiState.selectedCustomer,
-                    onCustomerSelected = { customer, fromDropdown ->
-                        viewModel.onCustomerSelected(customer)
-                        // 如果用户是从下拉菜单中选择的，通常不需要再做什么
-                        // 如果是从其他地方（如“创建新客户”按钮）选择的，可能需要其他逻辑
+                    onCustomerSelected = { customer, _ ->
+                        if (customer.id == -1L) {
+                            // **当点击“创建新客户”时，执行导航**
+                            val query = viewModel.customerSearchQuery.value
+                            navController.navigate(AppDestinations.addCustomerRoute(query))
+                        } else {
+                            viewModel.onCustomerSelected(customer)
+                        }
                     }
                 )
                 Spacer(modifier = Modifier.height(16.dp))

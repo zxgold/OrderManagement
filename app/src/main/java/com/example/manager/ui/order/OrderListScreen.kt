@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward // 用于指示进入详情
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert // 用于未来可能的每行操作
@@ -61,7 +62,14 @@ fun OrderListScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("订单管理") })
+            TopAppBar(
+                title = { Text("订单管理") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                    }
+                },
+            )
             // TODO: 未来可以添加搜索/筛选图标按钮
         },
         floatingActionButton = {
