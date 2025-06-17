@@ -23,6 +23,7 @@ import com.example.manager.ui.work.WorkScreen
 import com.example.manager.viewmodel.AuthViewModel
 import com.example.manager.ui.customer.CustomerDetailScreen
 import com.example.manager.ui.inventory.InventoryScreen
+import com.example.manager.ui.ledger.LedgerScreen
 import com.example.manager.ui.navigation.BottomNavItem
 import com.example.manager.ui.order.OrderDetailScreen
 import com.example.manager.ui.order.OrderListScreen
@@ -127,6 +128,11 @@ fun MainScreen(
             // 客户列表
             composable(AppDestinations.CUSTOMER_LIST_ROUTE) {
                 CustomerListScreen(authViewModel = authViewModel, navController = bottomSheetNavController)
+
+            }
+
+            composable(AppDestinations.LEDGER_ROUTE) {
+                LedgerScreen(navController = bottomSheetNavController)
 
             }
 

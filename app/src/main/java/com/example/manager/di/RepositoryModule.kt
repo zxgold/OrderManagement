@@ -56,8 +56,11 @@ abstract class RepositoryModule { // 使用 abstract class 或 interface for @Bi
         impl: InventoryRepositoryImpl
     ): InventoryRepository
 
-
-
+    @Binds
+    @Singleton
+    abstract fun bindLedgerRepository(
+        impl: LedgerRepositoryImpl
+    ): LedgerRepository
 
 
 }
