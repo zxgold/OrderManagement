@@ -83,7 +83,7 @@ fun RegistrationScreen(
             // 当 Snackbar 因为用户点击 action 或超时/滑动消失时，再消耗错误
             if (result == SnackbarResult.ActionPerformed || result == SnackbarResult.Dismissed) {
                 Log.d("RegistrationScreen", "Snackbar dismissed or action performed for error: $errorMessage")
-                viewModel.errorShown() // 通知 ViewModel 错误已被处理
+                viewModel.authErrorShown() // 通知 ViewModel 错误已被处理
             }
         }
     }

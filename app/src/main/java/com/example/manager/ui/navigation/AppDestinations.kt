@@ -52,7 +52,7 @@ object AppDestinations {
     const val NEW_CUSTOMER_ID_RESULT_KEY = "new_customer_id"
     fun addCustomerRoute(defaultName: String = ""): String = "add_customer_screen?${ADD_CUSTOMER_ARG_NAME}=$defaultName"
 
-    // --- Routes accessible from Me Tab (未来) ---
+    // --- Routes accessible from Me Tab  ---
     const val STAFF_MANAGEMENT_ROUTE = "staff_management_screen"
 }
 

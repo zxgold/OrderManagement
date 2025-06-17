@@ -85,7 +85,7 @@ fun MeScreen(
                 text = "员工管理",
                 onClick = {
                     Log.d("MeScreen", "员工管理 点击")
-                    // TODO: mainAppNavController.navigate("staff_management_route")
+                    mainAppNavController.navigate(AppDestinations.STAFF_MANAGEMENT_ROUTE) // 使用上层 NavController
                     // 需要在 AppNavigation 中定义 staff_management_route
                     // 并创建一个 StaffManagementScreen
                 }

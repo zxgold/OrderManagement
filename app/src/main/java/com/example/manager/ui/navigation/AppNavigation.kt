@@ -22,6 +22,7 @@ import com.example.manager.ui.auth.RegistrationScreen
 import com.example.manager.ui.auth.LoginScreen
 import com.example.manager.ui.customer.CustomerListScreen
 import com.example.manager.ui.main.MainScreen
+import com.example.manager.ui.staff.StaffManagementScreen
 import com.example.manager.viewmodel.AuthViewModel
 import com.example.manager.viewmodel.NavigationEvent // 确保导入这个
 
@@ -142,6 +143,11 @@ fun AppNavigation(
 
         composable(AppDestinations.MAIN_APP_HOST_ROUTE) { // 新增 MainScreen 的路由
             MainScreen(mainNavController = navController, authViewModel = authViewModel) // 传递上层 navController
+        }
+
+        // 新增员工管理屏幕的路由
+        composable(AppDestinations.STAFF_MANAGEMENT_ROUTE) {
+            StaffManagementScreen(navController = navController)
         }
 
 

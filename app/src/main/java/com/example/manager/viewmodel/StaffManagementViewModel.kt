@@ -21,13 +21,6 @@ import javax.inject.Inject
  * 3. 处理添加、更新、切换员工状态等业务逻辑
  */
 
-// StaffManagementUiState：一个简单的数据类，持有员工列表、加载和消息状态
-data class StaffManagementUiState(
-    val staffList: List<Staff> = emptyList(),
-    val isLoading: Boolean = true,
-    val errorMessage: String? = null,
-    val successMessage: String? = null
-)
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel

@@ -45,6 +45,8 @@ fun LoginScreen(
     var usernameError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
 
+    
+
     // 处理导航事件
     LaunchedEffect(key1 = authUiState.navigationEvent) {
         Log.d("LoginScreen", "Navigation Event observed: ${authUiState.navigationEvent}")
@@ -65,7 +67,7 @@ fun LoginScreen(
                 message = it,
                 duration = SnackbarDuration.Short
             )
-            viewModel.errorShown()
+            viewModel.authErrorShown()
         }
     }
 
