@@ -23,4 +23,6 @@ interface PaymentRepository {
      * 插入一笔新的回款记录。
      */
     suspend fun insertPayment(payment: Payment): Result<Long>
+
+    suspend fun getTotalPaymentsForOrder(orderId: Long): Double
 }

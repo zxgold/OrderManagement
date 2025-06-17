@@ -35,4 +35,9 @@ class PaymentRepositoryImpl @Inject constructor(
             Result.failure(e)
         }
     }
+
+    override suspend fun getTotalPaymentsForOrder(orderId: Long): Double {
+        // DAO 返回 Double?，如果为 null (没有付款记录)，我们返回 0.0
+        return paymentDao.getTotalPaymentsForOrder(orderId) ?: 0.0
+    }
 }
