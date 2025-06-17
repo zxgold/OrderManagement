@@ -107,6 +107,10 @@ fun WorkScreen(
                     bottomNavController.navigate(AppDestinations.INVENTORY_ROUTE)
                 }
 
+                if (itemTag == AppDestinations.LEDGER_ROUTE) {
+                    bottomNavController.navigate(AppDestinations.LEDGER_ROUTE)
+                }
+
             }
         )
     }
