@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,17 +32,36 @@ fun LedgerScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showAddDialog by remember { mutableStateOf(false) }
+    // --- 用于日期选择器的状态 ---
+    var showDatePickerDialog by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState(
+        // 默认选中当前日期范围的开始日期
+        initialSelectedDateMillis = uiState.startDate
+    )
+    // -----------------------------
+
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("店铺日记账") },
+                title = {
+                    // 在标题中显示当前选择的日期范围
+                    val startDateText = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(uiState.startDate))
+                    val endDateText = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(uiState.endDate))
+                    val titleText = if (startDateText == endDateText) startDateText else "$startDateText ~ $endDateText"
+                    Text(titleText)
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                     }
+                },
+                actions = {
+                    // 添加日期选择按钮
+                    IconButton(onClick = { showDatePickerDialog = true }) {
+                        Icon(Icons.Filled.DateRange, contentDescription = "选择日期")
+                    }
                 }
-                // TODO: 添加日期范围选择器按钮
             )
         },
         floatingActionButton = {
@@ -72,6 +92,29 @@ fun LedgerScreen(
                     }
                 }
             }
+        }
+    }
+
+    // --- 添加日期选择器对话框 ---
+    if (showDatePickerDialog) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePickerDialog = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { selectedDate ->
+                            // 调用 ViewModel 的方法来设置新的一天
+                            viewModel.setDate(selectedDate)
+                        }
+                        showDatePickerDialog = false
+                    }
+                ) { Text("确认") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePickerDialog = false }) { Text("取消") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 

@@ -91,6 +91,30 @@ class LedgerViewModel @Inject constructor(
         _dateRange.value = Pair(startDate, endDate)
     }
 
+    // 这个方法接收一个时间戳（通常是某天的开始），
+    // 并将日期范围设置为这一整天。
+    fun setDate(dateInMillis: Long) {
+        val calendar = Calendar.getInstance()
+        calendar.timeInMillis = dateInMillis
+
+        // 设置为当天的开始时间 00:00:00
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+        val startOfDay = calendar.timeInMillis
+
+        // 设置为当天的结束时间 23:59:59
+        calendar.set(Calendar.HOUR_OF_DAY, 23)
+        calendar.set(Calendar.MINUTE, 59)
+        calendar.set(Calendar.SECOND, 59)
+        calendar.set(Calendar.MILLISECOND, 999)
+        val endOfDay = calendar.timeInMillis
+
+        // 更新 dateRange StateFlow，这将自动触发数据重新加载
+        _dateRange.value = Pair(startOfDay, endOfDay)
+    }
+
     fun addLedgerEntry(type: LedgerEntryType, amount: Double, description: String, date: Long) {
         viewModelScope.launch {
             val session = sessionManager.userSessionFlow.firstOrNull()
