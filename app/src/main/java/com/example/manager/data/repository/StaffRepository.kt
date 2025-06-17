@@ -37,4 +37,6 @@ interface StaffRepository {
 
     suspend fun isInitialSetupNeeded(): Boolean // 判断是否需要初始设置（即老板注册）
 
+    suspend fun getStaffByIds(ids: List<Long>): List<Staff>
+
 }

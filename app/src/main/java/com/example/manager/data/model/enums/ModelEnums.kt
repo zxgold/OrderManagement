@@ -101,3 +101,10 @@ enum class ActionLogType {
     LEDGER_ENTRY_UPDATED, // 通常不建议修改，除非修正错误
     LEDGER_ENTRY_DELETED  // 同上
 }
+
+enum class InventoryItemStatus {
+    AVAILABLE,  // 可用
+    RESERVED,   // 已预定
+    SOLD,       // 已售出/已安装
+    DEFECTIVE   // 残次品 (未来扩展)
+}

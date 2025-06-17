@@ -15,17 +15,21 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
+import com.example.manager.ui.customer.AddCustomerScreen
 import com.example.manager.ui.customer.CustomerListScreen // 我们已有的客户列表
 import com.example.manager.ui.me.MeScreen
 import com.example.manager.ui.navigation.AppDestinations
-import com.example.manager.ui.navigation.BottomNavItem // 导入导航项定义
 import com.example.manager.ui.work.WorkScreen
 import com.example.manager.viewmodel.AuthViewModel
 import com.example.manager.ui.customer.CustomerDetailScreen
+import com.example.manager.ui.inventory.InventoryScreen
+import com.example.manager.ui.navigation.BottomNavItem
 import com.example.manager.ui.order.OrderDetailScreen
 import com.example.manager.ui.order.OrderListScreen
 import com.example.manager.ui.order.AddEditOrderScreen
 import com.example.manager.ui.supplier.SupplierProductScreen
+import com.example.manager.ui.workorder.WorkOrderDetailScreen
+import com.example.manager.ui.workorder.WorkOrderListScreen
 
 // import com.example.manager.ui.work.WorkScreen // 后续创建
 // import com.example.manager.ui.me.MeScreen // 后续创建
@@ -120,6 +124,7 @@ fun MainScreen(
                 // MeScreen(mainAppNavController = mainNavController) // MeScreen 暂时还是占位符或骨架
             }
 
+            // 客户列表
             composable(AppDestinations.CUSTOMER_LIST_ROUTE) {
                 CustomerListScreen(authViewModel = authViewModel, navController = bottomSheetNavController)
 
@@ -187,7 +192,51 @@ fun MainScreen(
                 SupplierProductScreen(navController = bottomSheetNavController) // 传递 NavController
             }
 
+            composable(
+                route = AppDestinations.WORK_ORDER_DETAIL_ROUTE_TEMPLATE,
+                arguments = listOf(navArgument(AppDestinations.WORK_ORDER_DETAIL_ARG_ID) {
+                    type = NavType.LongType // 明确参数类型为 Long
+                })
+            ) { backStackEntry ->
+                // 从 backStackEntry 的 arguments 中安全地获取 orderItemId
+                val orderItemId = backStackEntry.arguments?.getLong(AppDestinations.WORK_ORDER_DETAIL_ARG_ID)
+                if (orderItemId != null && orderItemId != -1L) {
+                    WorkOrderDetailScreen(
+                        // customerId = customerId, // 这里应该是 orderItemId
+                        // 我们之前在 WorkOrderDetailViewModel 中已经设置了从 SavedStateHandle 获取
+                        // 所以这里其实不需要显式传递 ID 给 Composable，除非你的 Composable 需要它
+                        // 但为了清晰，我们传递 NavController
+                        navController = bottomSheetNavController
+                    )
+                } else {
+                    // 处理 ID 无效的情况
+                    Text("错误：无效的工单ID。")
+                }
+            }
 
+            composable(AppDestinations.WORK_ORDER_LIST_ROUTE) { navBackStackEntry -> // <-- 从 composable lambda 获取
+                WorkOrderListScreen(
+                    navController = bottomSheetNavController,
+                    navBackStackEntry = navBackStackEntry // <-- 传递给屏幕
+                )
+            }
+
+            // MainScreen.kt -> NavHost
+            composable(
+                route = AppDestinations.ADD_CUSTOMER_ROUTE_TEMPLATE,
+                arguments = listOf(navArgument("defaultName") { type = NavType.StringType; nullable = true })
+            ) { backStackEntry ->
+                val defaultName = backStackEntry.arguments?.getString("defaultName") ?: ""
+                AddCustomerScreen(
+                    navController = bottomSheetNavController, // 使用内部导航控制器
+                    defaultName = defaultName
+                )
+            }
+
+            // 首页点击库存管理跳转页面
+            composable(AppDestinations.INVENTORY_ROUTE) {
+                InventoryScreen(navController = bottomSheetNavController)
+            }
 
         }
     }

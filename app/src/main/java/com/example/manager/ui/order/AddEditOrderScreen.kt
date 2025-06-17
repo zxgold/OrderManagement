@@ -26,8 +26,11 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.ui.text.font.FontWeight
 import com.example.manager.viewmodel.TempOrderItem
-import com.example.manager.ui.order.AddOrderItemDialog // 我们之前创建的对话框
 import com.example.manager.ui.order.OrderItemInputRow // 新的订单项输入行
+import com.example.manager.ui.customer.AddCustomerDialog // **现在不再需要这个了**
+import com.example.manager.ui.navigation.AppDestinations // **导入 AppDestinations**
+import androidx.compose.runtime.livedata.observeAsState
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,8 +45,27 @@ fun AddEditOrderScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val isEditMode = orderId != null && orderId != -1L
     var showAddOrderItemDialog by remember { mutableStateOf(false) } // 新增状态控制添加产品对话框
+    val productSearchQuery by viewModel.productSearchQuery.collectAsStateWithLifecycle() // <-- **获取产品搜索相关状态**
+    val productSearchResults by viewModel.productSearchResults.collectAsStateWithLifecycle() // <-- **获取产品搜索相关状态**
 
     var notesState by remember(uiState.orderId) { mutableStateOf(TextFieldValue(uiState.notes ?: "")) }
+
+    // --- **监听从 AddCustomerScreen 返回的结果** ---
+    val newCustomerIdResult = navController.currentBackStackEntry
+        ?.savedStateHandle
+        ?.getLiveData<Long>(AppDestinations.NEW_CUSTOMER_ID_RESULT_KEY)
+        ?.observeAsState()
+
+    LaunchedEffect(newCustomerIdResult?.value) {
+        newCustomerIdResult?.value?.let { id ->
+            Log.d("AddEditOrderScreen", "Received new customer ID: $id")
+            viewModel.selectCustomerById(id)
+            // 清除结果，防止重复处理
+            navController.currentBackStackEntry
+                ?.savedStateHandle
+                ?.remove<Long>(AppDestinations.NEW_CUSTOMER_ID_RESULT_KEY)
+        }
+    }
 
     // 根据是新增还是编辑模式，在 Composable 首次组合时准备数据
     LaunchedEffect(key1 = orderId) {
@@ -112,10 +134,14 @@ fun AddEditOrderScreen(
                     onSearchQueryChanged = viewModel::onCustomerSearchQueryChanged,
                     searchResults = customerSearchResults,
                     selectedCustomer = uiState.selectedCustomer,
-                    onCustomerSelected = { customer, fromDropdown ->
-                        viewModel.onCustomerSelected(customer)
-                        // 如果用户是从下拉菜单中选择的，通常不需要再做什么
-                        // 如果是从其他地方（如“创建新客户”按钮）选择的，可能需要其他逻辑
+                    onCustomerSelected = { customer, _ ->
+                        if (customer.id == -1L) {
+                            // **当点击“创建新客户”时，执行导航**
+                            val query = viewModel.customerSearchQuery.value
+                            navController.navigate(AppDestinations.addCustomerRoute(query))
+                        } else {
+                            viewModel.onCustomerSelected(customer)
+                        }
                     }
                 )
                 Spacer(modifier = Modifier.height(16.dp))
@@ -144,11 +170,11 @@ fun AddEditOrderScreen(
                         item = tempItem,
                         onQuantityChange = { tempId, newQuantity ->
                             // 调用 ViewModel 的 update 方法，但只更新数量
-                            viewModel.updateTempOrderItem(tempId, newQuantity, tempItem.actualUnitPrice, tempItem.notes)
+                            viewModel.updateTempOrderItem(tempId, newQuantity, tempItem.actualUnitPrice)
                         },
                         onPriceChange = { tempId, newPrice ->
                             // 调用 ViewModel 的 update 方法，但只更新价格
-                            viewModel.updateTempOrderItem(tempId, tempItem.quantity, newPrice, tempItem.notes)
+                            viewModel.updateTempOrderItem(tempId, tempItem.quantity, newPrice)
                         },
                         onRemoveClick = viewModel::removeTempOrderItem
                     )
@@ -195,12 +221,20 @@ fun AddEditOrderScreen(
     }
 
     // 显示添加产品对话框
+    // --- 显示添加产品对话框 ---
     if (showAddOrderItemDialog) {
-        AddOrderItemDialog( // 注意：这个对话框需要用我们之前创建的那个
-            availableProducts = uiState.availableProducts,
-            onDismiss = { showAddOrderItemDialog = false },
-            onConfirm = { product, quantity, price, notes ->
-                viewModel.addTempOrderItem(product, quantity, price, notes)
+        // **修改这里：我们需要一个新的、支持搜索的对话框**
+        // 我们先创建一个新的对话框 Composable
+        ProductSearchSelectorDialog(
+            searchQuery = productSearchQuery,
+            onSearchQueryChanged = viewModel::onProductSearchQueryChanged,
+            searchResults = productSearchResults,
+            onDismiss = {
+                showAddOrderItemDialog = false
+                viewModel.onProductSearchQueryChanged("") // 关闭时清空搜索词
+            },
+            onConfirm = { product, quantity, price, notes, isCustomized ->
+                viewModel.addTempOrderItem(product, quantity, price, notes, isCustomized)
                 showAddOrderItemDialog = false
             }
         )

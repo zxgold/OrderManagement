@@ -48,4 +48,9 @@ class StaffRepositoryImpl @Inject constructor(
     override suspend fun isInitialSetupNeeded(): Boolean {
         return staffDao.countStaff() == 0 // 如果员工数为0，则需要初始设置
     }
+
+    override suspend fun getStaffByIds(ids: List<Long>): List<Staff> {
+        return staffDao.getStaffByIds(ids)
+    }
+
 }

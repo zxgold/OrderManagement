@@ -10,13 +10,21 @@ import com.example.manager.data.repository.CustomerRepository // 导入 Reposito
 import com.example.manager.data.repository.OrderRepository
 import com.example.manager.data.repository.ProductRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+sealed class AddCustomerResult {
+    data class Success(val newCustomerId: Long) : AddCustomerResult()
+    data class Failure(val errorMessage: String) : AddCustomerResult()
+}
 
 // 定义一个数据类来表示 UI 状态
 data class CustomerListUiState(
@@ -40,11 +48,29 @@ class CustomerViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(CustomerListUiState())
     val uiState: StateFlow<CustomerListUiState> = _uiState.asStateFlow()
 
+    // 将 loadCustomersBasedOnSession 合并到 init 或 refreshCustomerList 中
+    // 或者保持它为 private，让 refreshCustomerList 调用它
     init {
         Log.d("CustomerViewModel", "ViewModel initialized")
-        // 在 init 中加载客户时，也需要 storeId
+        refreshCustomerList() // init 时也调用刷新
+    }
+
+    // --- 用于广播添加客户的结果 ---
+    private val _addCustomerResultChannel = Channel<AddCustomerResult>()
+    val addCustomerResultFlow = _addCustomerResultChannel.receiveAsFlow()
+    // ------------------------------------
+
+    // 我们将 loadCustomersBasedOnSession 的核心逻辑提取出来，并使其 public
+    fun refreshCustomerList() {
         viewModelScope.launch {
-            loadCustomersBasedOnSession()
+            Log.d("CustomerViewModel", "refreshCustomerList called.")
+            val storeId = getCurrentStoreId()
+            if (storeId == null) {
+                _uiState.update { it.copy(isLoading = false, customers = emptyList(), errorMessage = "无法获取当前店铺信息，无法加载客户列表。") }
+                return@launch
+            }
+            // 重新加载当前搜索条件下的客户列表
+            loadCustomers(storeId)
         }
     }
 
@@ -57,35 +83,44 @@ class CustomerViewModel @Inject constructor(
         return currentSession?.storeId
     }
 
-    // 旧的加载客户方法，它会先获取 storeId
     private suspend fun loadCustomersBasedOnSession() {
-        val storeId = getCurrentStoreId()
-        if (storeId == null) {
-            _uiState.update { it.copy(isLoading = false, customers = emptyList(), errorMessage = "无法获取当前店铺信息，无法加载客户列表。") }
-            Log.e("CustomerViewModel", "StoreId is null, cannot load customers.")
+        val storeId = getCurrentStoreId() ?: run {
+            _uiState.update { it.copy(isLoading = false, errorMessage = "无法获取店铺信息") }
             return
         }
-        loadCustomers(storeId) // 调用实际的加载方法
+        // 对于响应式，我们应该直接订阅 Flow，而不是一次性加载
+        // 我们在 loadCustomers 中处理
     }
 
-    // 修改 loadCustomers 以接收 storeId
-    fun loadCustomers(storeId: Long) { // 改为 public 或 internal 如果其他地方需要直接调用
-        _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+    // searchCustomers 也需要返回 Flow
+    fun searchCustomers(query: String) {
         viewModelScope.launch {
+            val storeId = getCurrentStoreId() ?: return@launch
+            // 响应式搜索应该在 OrderViewModel 中实现，CustomerViewModel 只负责列表页的简单搜索
+            val customers = customerRepository.searchCustomers(query, storeId)
+            _uiState.update { it.copy(customers = customers) }
+        }
+    }
+
+    fun loadCustomers(storeId: Long) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
-                val customers = if (_uiState.value.searchQuery.isBlank()) {
-                    customerRepository.getAllCustomersByStoreId(storeId)
-                } else {
-                    customerRepository.searchCustomers(_uiState.value.searchQuery, storeId)
-                }
-                _uiState.update { it.copy(customers = customers, isLoading = false) }
+                // **从 Repository 获取 Flow 并 collect**
+                customerRepository.getAllCustomersByStoreIdFlow(storeId)
+                    .catch { e ->
+                        Log.e("CustomerViewModel", "Error collecting customers", e)
+                        _uiState.update { it.copy(isLoading = false, errorMessage = "加载客户列表失败") }
+                    }
+                    .collect { customers ->
+                        _uiState.update { it.copy(customers = customers, isLoading = false) }
+                    }
             } catch (e: Exception) {
-                Log.e("CustomerViewModel", "Error loading customers for store $storeId", e)
-                _uiState.update { it.copy(isLoading = false, errorMessage = "加载客户失败: ${e.localizedMessage}") }
+                // `collect` 通常会捕获 Flow 的异常，但这里保留以防万一
+                _uiState.update { it.copy(isLoading = false, errorMessage = "加载客户时发生未知错误") }
             }
         }
     }
-
 
 
 
@@ -97,38 +132,28 @@ class CustomerViewModel @Inject constructor(
     }
 
     // 添加客户时，也需要 storeId
+    // --- **修改 addCustomer 方法以发送结果** ---
     fun addCustomer(name: String, phone: String, address: String?, remark: String?) {
         viewModelScope.launch {
             val storeId = getCurrentStoreId()
             if (storeId == null) {
-                _uiState.update { it.copy(errorMessage = "无法获取当前店铺信息，无法添加客户。") }
+                _addCustomerResultChannel.send(AddCustomerResult.Failure("无法获取店铺信息，无法添加客户。"))
                 return@launch
             }
-
-            // 提前检查电话号码在当前店铺是否已存在 (如果电话非空)
-            val existingCustomerByPhone = customerRepository.getCustomerByPhoneAndStoreId(phone, storeId)
-            if (existingCustomerByPhone != null) {
-                _uiState.update { it.copy(errorMessage = "电话号码 '$phone' 在本店已存在。") }
+            if (customerRepository.getCustomerByPhoneAndStoreId(phone, storeId) != null) {
+                _addCustomerResultChannel.send(AddCustomerResult.Failure("电话号码 '$phone' 在本店已存在。"))
                 return@launch
             }
-
-
-            val newCustomer = Customer(
-                storeId = storeId, // **设置 storeId**
-                name = name,
-                phone = phone,
-                address = address,
-                remark = remark
-            )
+            val newCustomer = Customer(storeId = storeId, name = name, phone = phone, address = address, remark = remark)
             customerRepository.insertCustomer(newCustomer)
-                .onSuccess {
-                    Log.d("CustomerViewModel", "Customer added successfully. Reloading list for store $storeId")
-                    loadCustomers(storeId) // 使用已知的 storeId 重新加载
+                .onSuccess { newId ->
+                    Log.d("CustomerViewModel", "Customer added successfully with ID: $newId")
+                    _addCustomerResultChannel.send(AddCustomerResult.Success(newId))
+                    // 列表会自动刷新，因为我们使用了 Flow
                 }
                 .onFailure { e ->
-                    Log.e("CustomerViewModel", "Error adding customer for store $storeId", e)
-                    val errorMsg = if (e is SQLiteConstraintException) "添加客户失败：电话号码可能已在本店注册。" else "添加客户失败: ${e.localizedMessage}"
-                    _uiState.update { it.copy(errorMessage = errorMsg) }
+                    val errorMsg = if (e is SQLiteConstraintException) "添加失败：数据冲突。" else "添加客户失败: ${e.localizedMessage}"
+                    _addCustomerResultChannel.send(AddCustomerResult.Failure(errorMsg))
                 }
         }
     }

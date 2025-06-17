@@ -10,6 +10,7 @@ interface ProductRepository {
     fun getAllActiveProductsBySupplierIdFlow(supplierId: Long): Flow<List<Product>>
     fun getAllActiveProductsByStoreIdFlow(storeId: Long): Flow<List<Product>> // <-- 新增或修改为此
     suspend fun getProductById(productId: Long): Product? // <-- 新增
+    fun searchActiveProductsByStoreIdFlow(query: String, storeId: Long): Flow<List<Product>>
 
 
 }

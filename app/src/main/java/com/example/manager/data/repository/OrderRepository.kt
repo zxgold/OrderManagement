@@ -2,7 +2,10 @@ package com.example.manager.data.repository
 
 import com.example.manager.data.model.entity.Order
 import com.example.manager.data.model.entity.OrderItem
+import com.example.manager.data.model.entity.OrderItemStatusLog
+import com.example.manager.data.model.enums.OrderItemStatus
 import com.example.manager.data.model.enums.OrderStatus
+import kotlinx.coroutines.flow.Flow
 
 interface OrderRepository {
     // 创建订单时，Order 对象应已包含正确的 storeId, creatingStaffId 等
@@ -22,5 +25,17 @@ interface OrderRepository {
     // OrderItem 相关，通常通过 OrderId 操作，间接实现店铺隔离
     suspend fun getOrderItemsByOrderId(orderId: Long): List<OrderItem>
     suspend fun updateOrderItem(orderItem: OrderItem): Result<Int> // orderItem.orderId -> Order.storeId
-    // ... 其他方法
+
+    suspend fun updateOrderItemStatus(
+        orderItemId: Long,
+        newStatus: OrderItemStatus,
+        staffId: Long,
+        storeId: Long // 用于库存操作
+    ): Result<Boolean>
+
+    fun getLogsForOrderItemFlow(orderItemId: Long): Flow<List<OrderItemStatusLog>> // <-- **添加此方法**
+
+    suspend fun getOrderItemById(orderItemId: Long): OrderItem? // <-- 添加到 Repository
+
+    suspend fun checkAndCompleteOrder(orderId: Long, storeId: Long): Boolean // 返回订单是否被完成
 }

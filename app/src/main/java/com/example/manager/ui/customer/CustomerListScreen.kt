@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -29,8 +30,14 @@ import com.example.manager.viewmodel.CustomerViewModel
 import androidx.compose.material3.HorizontalDivider // 你使用的是 HorizontalDivider
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.example.manager.ui.navigation.AppDestinations
+
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,6 +65,25 @@ fun CustomerListScreen(
     var showAddDialog by remember { mutableStateOf(false) }
     var customerToDelete by remember { mutableStateOf<Customer?>(null) }
 
+    // --- **当屏幕重新进入前台时，刷新数据** ---
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                Log.d("CustomerListScreen", "Screen Resumed. Reloading customers.")
+                // 调用 ViewModel 的方法来刷新数据
+                // 我们之前已经有了 loadCustomersBasedOnSession 这个方法，但它是 private 的
+                // 我们需要一个 public 的方法来触发刷新
+                viewModel.refreshCustomerList()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+    // ----------------------------------------------------
+
     LaunchedEffect(uiState.errorMessage) {
         uiState.errorMessage?.let { message ->
             val result = snackbarHostState.showSnackbar(
@@ -74,6 +100,11 @@ fun CustomerListScreen(
         topBar = {
             TopAppBar(
                 title = { Text("客户管理") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                    }
+                },
                 actions = {
                     if (currentRole == StaffRole.BOSS) {
                         IconButton(onClick = {
@@ -202,6 +233,8 @@ fun CustomerItem(
             .clickable { onItemClick(customer) } // 使整个条目可点击
             .padding(vertical = 12.dp, horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
+
+
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
