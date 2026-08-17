@@ -1,0 +1,30 @@
+{
+  "fixtureName": "v20-fictional-migration-fixture",
+  "schemaVersion": 20,
+  "realDataIncluded": false,
+  "counts": {
+    "stores": 1,
+    "staff": 4,
+    "suppliers": 2,
+    "products": 4,
+    "customers": 3,
+    "orders": 3,
+    "order_items": 4,
+    "payments": 3,
+    "follow_ups": 3,
+    "ledger_entries": 3,
+    "action_logs": 4,
+    "order_item_status_logs": 3,
+    "inventory_items": 3
+  },
+  "edgeCases": [
+    "BOSS_STAFF_SHAREHOLDER_and_disabled_staff",
+    "decimal_amounts_requiring_roundToLong",
+    "orders_with_and_without_customer",
+    "orders_with_multiple_responsible_staff_ids",
+    "customer_owner_not_derivable",
+    "payment_and_refund_like_ledger_history",
+    "standard_and_reserved_legacy_inventory",
+    "action_log_for_disabled_staff"
+  ]
+}
